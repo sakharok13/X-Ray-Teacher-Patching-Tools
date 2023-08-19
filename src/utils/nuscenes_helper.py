@@ -1,6 +1,6 @@
 import numpy as np
 from nuscenes import NuScenes
-from nuscenes.utils.data_classes import LidarPointCloud, Box
+from nuscenes.utils.data_classes import LidarPointCloud
 from nuscenes.utils.geometry_utils import points_in_box
 
 
@@ -58,6 +58,7 @@ def get_instance_point_cloud(frame_id: str,
         Point Cloud from lidar.
     :return: np.ndarray[float]
         Returns point cloud for the given object.
+        Dimension of the array is 3xm.
     """
 
     frame = nuscenes.get('sample', frame_id)

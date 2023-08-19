@@ -1,2 +1,3 @@
 numpy==1.25.2
 nuscenes-devkit==1.1.10
+open3d==0.17.0

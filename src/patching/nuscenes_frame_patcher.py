@@ -10,6 +10,9 @@ from src.utils.nuscenes_helper import load_frame_point_cloud, reapply_scene_tran
 
 
 class NuscenesFramePatcher(FramePatcher):
+    """Patches NuScenes frames with new point clouds.
+    """
+
     def __init__(self,
                  frame_id: str,
                  frame_point_cloud: np.ndarray[float],
@@ -22,11 +25,42 @@ class NuscenesFramePatcher(FramePatcher):
     def load(cls,
              frame_id: str,
              nuscenes: NuScenes) -> NuscenesFramePatcher:
+        """Creates NuscenesFramePatcher instance.
+
+        :param frame_id: str
+            ID of a frame.
+        :param nuscenes: 'NuScenes'
+            Default NuScenes library facade.
+        :return: 'NuscenesFramePatcher'
+            A constructed instance.
+        """
         lidar_point_cloud = load_frame_point_cloud(frame_id=frame_id,
                                                    nuscenes=nuscenes)
         return NuscenesFramePatcher(frame_id=frame_id,
                                     frame_point_cloud=lidar_point_cloud.points,
                                     nuscenes=nuscenes)
+
+    @classmethod
+    def serialise(cls,
+                  path: str,
+                  point_cloud: np.ndarray[float]):
+        """Serialises the given frame into a .bin file.
+        """
+
+        if not path.endswith('.bin'):
+            raise Exception(f"Supports only bin files, got: {path}")
+
+        points_count = point_cloud.shape[1]
+
+        # NuScenes reads file of mx5 dimension and ignores the last dimension
+        # as cls.nbr_dims is 4.
+        # scan = np.fromfile(file_name, dtype=np.float32)
+        # points = scan.reshape((-1, 5))[:, :cls.nbr_dims()]
+        np.append(point_cloud, np.zeros(shape=(1, points_count)), axis=0).T.astype(dtype=np.float32).tofile(path)
+
+    @property
+    def frame_id(self) -> str:
+        return self.__frame_id
 
     @property
     def frame(self) -> np.ndarray[float]:

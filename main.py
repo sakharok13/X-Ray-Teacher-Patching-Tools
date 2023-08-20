@@ -39,6 +39,12 @@ def main():
     # Patched scene.
     visualise_points_cloud(frame_patcher.frame.T)
 
+    scene_file = f"{frame_patcher.frame_id}.bin"
+    NuscenesFramePatcher.serialise(path=scene_file,
+                                   point_cloud=frame_patcher.frame)
+
+    print('File saved to:', scene_file)
+
 
 if __name__ == '__main__':
     main()

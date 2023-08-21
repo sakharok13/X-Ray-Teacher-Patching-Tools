@@ -1,9 +1,8 @@
-import os.path
-
 from nuscenes import NuScenes
-from nuscenes.utils.data_classes import LidarPointCloud
 
-from src.utils.nuscenes_helper import group_instances_across_frames, get_instance_point_cloud
+from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
+from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
+from src.utils.nuscenes_helper import group_instances_across_frames
 from src.utils.visualisation_helper import visualise_points_cloud
 
 
@@ -12,20 +11,16 @@ def main():
 
     grouped_instances = group_instances_across_frames(scene_id=0, nuscenes=nuscenes)
 
-    frame = nuscenes.get('sample', 'e0845f5322254dafadbbed75aaa07969')
-    lidarseg_token = frame['data']['LIDAR_TOP']
-    lidarseg = nuscenes.get('sample_data', lidarseg_token)
+    point_cloud_accumulator = PointCloudAccumulator(step=1,
+                                                    scene_id=0,
+                                                    grouped_instances=grouped_instances,
+                                                    nuscenes=nuscenes)
+    default_accumulation_strategy = DefaultAccumulatorStrategy()
 
-    scene_point_cloud = LidarPointCloud.from_file(os.path.join(nuscenes.dataroot, lidarseg['filename']))
+    accumulated_point_cloud = point_cloud_accumulator.merge(instance_id='e91afa15647c4c4994f19aeb302c7179',
+                                                            accumulation_strategy=default_accumulation_strategy)
 
-    points = get_instance_point_cloud(frame_id='e0845f5322254dafadbbed75aaa07969',
-                                      instance_id='e91afa15647c4c4994f19aeb302c7179',
-                                      scene_point_cloud=scene_point_cloud,
-                                      nuscenes=nuscenes)
-
-    visualise_points_cloud(points.T)
-
-    print(grouped_instances)
+    visualise_points_cloud(accumulated_point_cloud.T)
 
 
 if __name__ == '__main__':

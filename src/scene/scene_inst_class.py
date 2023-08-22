@@ -27,3 +27,29 @@ class SceneInstance:
 
     def __repr__(self):
         return self.__str__()
+
+
+class FrameDetection(SceneInstance):
+    def __init__(self, instance_id: str, category: str, scene_id: int, frame_token: str, transformation_matrix: np.ndarray):
+        # Call the constructor of the parent class
+        super().__init__(instance_id, category, scene_id)
+
+        # Add attributes specific to frame detections
+        self.frame_token = frame_token
+        self.transformation_matrix = transformation_matrix
+        self.points = []  # Points specific to this frame detection
+        self.o3d_pointcloud = None  # Open3D point cloud representation
+
+    def add_points(self, points: np.ndarray):
+        self.points.extend(points)
+
+    def create_o3d_pointcloud(self):
+        if self.points:
+            self.o3d_pointcloud = o3d.geometry.PointCloud()
+            self.o3d_pointcloud.points = o3d.utility.Vector3dVector(self.points)
+
+    def __str__(self):
+        return f"Frame Token: {self.frame_token}, {super().__str__()}"
+
+    def __repr__(self):
+        return self.__str__()

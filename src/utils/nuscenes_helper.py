@@ -28,7 +28,7 @@ def get_instance_point_cloud(frame_id: str,
         Point Cloud from lidar.
     :return: np.ndarray[float]
         Returns point cloud for the given object.
-        Dimension of the array is 3xm.
+        Dimension of the array is 5xm.
     """
 
     frame = nuscenes.get('sample', frame_id)
@@ -61,7 +61,7 @@ def get_instance_point_cloud(frame_id: str,
     assert points_expected == points_detected, \
         f"Expected {points_expected} points, detected {points_detected} points"
 
-    instance_point_cloud = points[:, np.where(mask)[0]]
+    instance_point_cloud = frame_point_cloud.points[:, np.where(mask)[0]]
 
     lidarseg_record = nuscenes.get('sample_data', lidarseg_token)
 
@@ -137,6 +137,39 @@ def load_frame_point_cloud(frame_id: str,
     lidarseg = nuscenes.get('sample_data', lidarseg_token)
 
     return LidarPointCloud.from_file(os.path.join(nuscenes.dataroot, lidarseg['filename']))
+
+
+def reapply_scene_transformation(annotation_token: str,
+                                 lidarseg_token: str,
+                                 point_cloud: np.ndarray[float],
+                                 nuscenes: NuScenes) -> np.ndarray[float]:
+    annotation = nuscenes.get('sample_annotation', annotation_token)
+    lidarseg_record = nuscenes.get('sample_data', lidarseg_token)
+
+    # First step: put object back to the global coordinates.
+    identity_to_global_transformation = transform_matrix(annotation['translation'],
+                                                         Quaternion(annotation['rotation']),
+                                                         inverse=False)
+    instance_point_cloud = __apply_transformation_matrix(point_cloud=point_cloud,
+                                                         transformation_matrix=identity_to_global_transformation)
+
+    # Second step: transform from global to vehicle ego basis.
+    ego_pose_record = nuscenes.get('ego_pose', lidarseg_record['ego_pose_token'])
+    global_to_ego_transformation = transform_matrix(np.array(ego_pose_record['translation']),
+                                                    Quaternion(ego_pose_record['rotation']),
+                                                    inverse=True)
+    instance_point_cloud = __apply_transformation_matrix(point_cloud=instance_point_cloud,
+                                                         transformation_matrix=global_to_ego_transformation)
+
+    # Third step: transform ego vehicle to the sensor basis.
+    calibrated_sensor_record = nuscenes.get('calibrated_sensor', lidarseg_record['calibrated_sensor_token'])
+    ego_to_sensor_transformation = transform_matrix(np.array(calibrated_sensor_record['translation']),
+                                                    Quaternion(calibrated_sensor_record['rotation']),
+                                                    inverse=True)
+    instance_point_cloud = __apply_transformation_matrix(point_cloud=instance_point_cloud,
+                                                         transformation_matrix=ego_to_sensor_transformation)
+
+    return instance_point_cloud
 
 
 def __apply_transformation_matrix(point_cloud: np.ndarray[float],

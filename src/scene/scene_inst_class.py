@@ -1,7 +1,7 @@
 import numpy as np
 import open3d as o3d
 from nuscenes import NuScenes
-
+from src.utils.conversion_helper import convert_to_o3d_pointcloud
 
 class SceneInstance:
     def __init__(self, instance_id: str, category: str, scene_id: int):
@@ -45,8 +45,7 @@ class FrameDetection(SceneInstance):
 
     def create_o3d_pointcloud(self):
         if self.points:
-            self.o3d_pointcloud = o3d.geometry.PointCloud()
-            self.o3d_pointcloud.points = o3d.utility.Vector3dVector(self.points)
+            self.o3d_pointcloud = convert_to_o3d_pointcloud(self.points)
 
     def __str__(self):
         return f"Frame Token: {self.frame_token}, {super().__str__()}"

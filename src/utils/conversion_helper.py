@@ -9,7 +9,7 @@ def convert_to_o3d_pointcloud(points: np.ndarray):
     :return: o3d.geometry.PointCloud
         Open3D point cloud object.
     """
-    xyz = points[:, :3]
+    xyz = points[:3, :].T
 
     o3d_pc = o3d.geometry.PointCloud()
     o3d_pc.points = o3d.utility.Vector3dVector(xyz)

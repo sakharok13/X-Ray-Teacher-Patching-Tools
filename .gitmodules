@@ -1,0 +1,3 @@
+[submodule "gedi"]
+	path = gedi
+	url = https://github.com/fabiopoiesi/gedi.git

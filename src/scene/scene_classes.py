@@ -1,7 +1,7 @@
 import numpy as np
 import open3d as o3d
 from nuscenes import NuScenes
-from src.utils.conversion_helper import convert_to_o3d_pointcloud
+from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
 class SceneInstance:
     def __init__(self, instance_id: str, category: str, scene_id: int):
@@ -30,6 +30,15 @@ class SceneInstance:
 
 
 class FrameDetection(SceneInstance):
+    """
+        Represents a singular detection of scene instances in a single frame.
+
+        This is a temporary class used to store information about scene instances
+        detected in a single frame of data.
+
+        Attributes:
+            (list any attributes specific to this class here)
+        """
     def __init__(self, instance_id: str, category: str, scene_id: int, frame_token: str, transformation_matrix: np.ndarray):
         # Call the constructor of the parent class
         super().__init__(instance_id, category, scene_id)

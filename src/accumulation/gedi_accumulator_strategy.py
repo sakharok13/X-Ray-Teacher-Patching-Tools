@@ -11,6 +11,11 @@ class GediAccumulatorStrategy(AccumulationStrategy):
     and no further transformation is required.
     """
 
+    def on_merge(self,
+                 initial_point_cloud: np.ndarray[float],
+                 next_point_cloud: np.ndarray[float]) -> np.ndarray[float]:
+        return np.concatenate((initial_point_cloud, next_point_cloud), axis=1)
+
     def on_registration(
             self,
             initial_point_cloud: o3d.geometry.PointCloud,

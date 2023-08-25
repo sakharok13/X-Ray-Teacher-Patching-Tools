@@ -90,7 +90,7 @@ def __patch_scene(scene_id: int,
 
 
 def main():
-    nuscenes = NuScenes(version='v1.0-mini', dataroot='./data/nuscenes', verbose=True)
+    nuscenes = NuScenes(version='v1.0-mini', dataroot='./data/sets/nuscenes', verbose=True)
 
     scenes = nuscenes.scene
     for scene_id in range(len(scenes)):

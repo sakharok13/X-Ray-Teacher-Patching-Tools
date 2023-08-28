@@ -100,7 +100,7 @@ def __patch_scene(scene_id: int,
 
 
 def main():
-    nuscenes = NuScenes(version='v1.0-mini', dataroot='./temp/nuscenes', verbose=True)
+    nuscenes = NuScenes(version='v1.0-trainval', dataroot='../data/nuscenes', verbose=True)
 
     scenes = nuscenes.scene
     for scene_id in range(len(scenes)):

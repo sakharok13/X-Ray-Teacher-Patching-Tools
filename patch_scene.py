@@ -38,7 +38,7 @@ def __patch_scene(scene_id: int,
                                                     grouped_instances=grouped_instances,
                                                     nuscenes=nuscenes)
 
-    instance_accumulated_clouds_lookup: dict[str, np.ndarray[float]] = dict()
+    instance_accumulated_clouds_lookup: dict = dict()
 
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
@@ -54,7 +54,7 @@ def __patch_scene(scene_id: int,
         current_instance_index += 1
         print(f"Processed {int((current_instance_index / overall_instances_to_process_count) * 100)}%")
 
-    frames_to_instances_lookup: dict[str, set[str]] = dict()
+    frames_to_instances_lookup: dict = dict()
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
             if frame_id not in frames_to_instances_lookup:

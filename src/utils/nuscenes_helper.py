@@ -13,7 +13,7 @@ from nuscenes.utils.geometry_utils import view_points, transform_matrix
 def get_instance_point_cloud(frame_id: str,
                              frame_point_cloud: LidarPointCloud,
                              instance_id: str,
-                             nuscenes: NuScenes) -> np.ndarray[float]:
+                             nuscenes: NuScenes) -> np.ndarray:
     """Returns point cloud for the given instance in the given frame.
 
     The returned point cloud has reset rotation and translation.
@@ -92,7 +92,7 @@ def get_instance_point_cloud(frame_id: str,
 
 
 def group_instances_across_frames(scene_id: int,
-                                  nuscenes: NuScenes) -> dict[str, list[str]]:
+                                  nuscenes: NuScenes) -> dict:
     """ Returns a dictionary of instances associated with the frames which contain them.
 
     :param scene_id: int
@@ -103,7 +103,7 @@ def group_instances_across_frames(scene_id: int,
         Returns a dict of pairs of instance id to the list of ids of frames.
     """
 
-    grouped_instances: dict[str, list[str]] = dict()
+    grouped_instances: dict = dict()
 
     scene_iterator = NuScenesSceneIterator(scene_id=scene_id,
                                            nuscenes=nuscenes)
@@ -141,8 +141,8 @@ def load_frame_point_cloud(frame_id: str,
 
 def reapply_scene_transformation(annotation_token: str,
                                  lidarseg_token: str,
-                                 point_cloud: np.ndarray[float],
-                                 nuscenes: NuScenes) -> np.ndarray[float]:
+                                 point_cloud: np.ndarray,
+                                 nuscenes: NuScenes) -> np.ndarray:
     annotation = nuscenes.get('sample_annotation', annotation_token)
     lidarseg_record = nuscenes.get('sample_data', lidarseg_token)
 
@@ -172,8 +172,8 @@ def reapply_scene_transformation(annotation_token: str,
     return instance_point_cloud
 
 
-def __apply_transformation_matrix(point_cloud: np.ndarray[float],
-                                  transformation_matrix: np.ndarray[float]) -> np.ndarray[float]:
+def __apply_transformation_matrix(point_cloud: np.ndarray,
+                                  transformation_matrix: np.ndarray) -> np.ndarray:
     """Applies given transformation matrix to the given point cloud.
 
     :param point_cloud: np.ndarray[float]

@@ -19,7 +19,7 @@ class FramePatcher(ABC):
 
     @property
     @abstractmethod
-    def frame(self) -> np.ndarray[float]:
+    def frame(self) -> np.ndarray:
         """Returns frame point cloud.
 
         :return: np.ndarray[float]
@@ -30,7 +30,7 @@ class FramePatcher(ABC):
     @abstractmethod
     def patch_instance(self,
                        instance_id: str,
-                       point_cloud: np.ndarray[float]):
+                       point_cloud: np.ndarray):
         """Replaces a point cloud of the instance in the frame with the given point cloud.
 
         :param instance_id: str

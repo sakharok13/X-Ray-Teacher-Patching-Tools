@@ -11,6 +11,6 @@ class DefaultAccumulatorStrategy(AccumulationStrategy):
     """
 
     def on_merge(self,
-                 initial_point_cloud: np.ndarray[float],
-                 next_point_cloud: np.ndarray[float]) -> np.ndarray[float]:
+                 initial_point_cloud: np.ndarray,
+                 next_point_cloud: np.ndarray) -> np.ndarray:
         return np.concatenate((initial_point_cloud, next_point_cloud), axis=1)

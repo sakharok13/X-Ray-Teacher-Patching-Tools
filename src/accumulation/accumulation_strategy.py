@@ -9,8 +9,8 @@ class AccumulationStrategy(ABC):
 
     @abstractmethod
     def on_merge(self,
-                 initial_point_cloud: np.ndarray[float],
-                 next_point_cloud: np.ndarray[float]) -> np.ndarray[float]:
+                 initial_point_cloud: np.ndarray,
+                 next_point_cloud: np.ndarray) -> np.ndarray:
         """Merges two point clouds into a single cloud.
 
         :param initial_point_cloud: np.ndarray[float]

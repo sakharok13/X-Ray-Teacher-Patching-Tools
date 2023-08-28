@@ -2,7 +2,7 @@ import numpy as np
 import open3d as o3d
 
 
-def visualise_points_cloud(points: np.ndarray[float]):
+def visualise_points_cloud(points: np.ndarray):
     """Draws a point cloud in open3d.
 
     :param points: np.ndarray

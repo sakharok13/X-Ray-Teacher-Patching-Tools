@@ -58,12 +58,21 @@ def __patch_scene(scene_id: int,
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
             if frame_id not in frames_to_instances_lookup:
+                path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
+                                                                          nuscenes=nuscenes)
+                if os.path.exists(path_to_save):
+                    continue
+                    
                 frames_to_instances_lookup[frame_id] = set()
             frames_to_instances_lookup[frame_id].add(instance)
 
     current_frame_index = 0
     overall_frames_to_patch_count = len(frames_to_instances_lookup)
     for frame_id, instances in frames_to_instances_lookup.items():
+        path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
+                                                          nuscenes=nuscenes)
+        if os.path.exists(path_to_save):
+            continue
         print(f"Patching {frame_id}")
 
         patcher = NuscenesFramePatcher.load(frame_id=frame_id,
@@ -74,9 +83,6 @@ def __patch_scene(scene_id: int,
             # to do not carry the rotation and translation in between frames.
             patcher.patch_instance(instance_id=instance,
                                    point_cloud=np.copy(instance_accumulated_clouds_lookup[instance]))
-
-        path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
-                                                                  nuscenes=nuscenes)
 
         dir_path = os.path.dirname(path_to_save)
 

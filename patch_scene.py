@@ -61,6 +61,7 @@ def __patch_scene(scene_id: int,
                 path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
                                                                           nuscenes=nuscenes)
                 if os.path.exists(path_to_save):
+                    print(f'Skipping frame {frame_id}')
                     continue
                     
                 frames_to_instances_lookup[frame_id] = set()
@@ -72,7 +73,9 @@ def __patch_scene(scene_id: int,
         path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
                                                           nuscenes=nuscenes)
         if os.path.exists(path_to_save):
+            print(f'Skipping frame {frame_id}')
             continue
+            
         print(f"Patching {frame_id}")
 
         patcher = NuscenesFramePatcher.load(frame_id=frame_id,

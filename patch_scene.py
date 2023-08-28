@@ -1,3 +1,4 @@
+import argparse
 import os.path
 
 import numpy as np
@@ -9,6 +10,13 @@ from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 from src.patching.nuscenes_frame_patcher import NuscenesFramePatcher
 from src.utils.nuscenes_helper import group_instances_across_frames
 
+
+def parse_config():
+    parser = argparse.ArgumentParser(description='arg parser')
+    parser.add_argument('--start_scene_index', type=int, default=0, help='specify your scene index to start with')
+    args = parser.parse_args()
+    
+    return args
 
 def __get_lidarseg_patched_folder_and_filename(frame_id: str,
                                                nuscenes: NuScenes):
@@ -42,7 +50,22 @@ def __patch_scene(scene_id: int,
 
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
+    
+    check = 0 
+    for instance, frames in grouped_instances.items():
+        for frame_id in frames:
+            path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
+                                                                      nuscenes=nuscenes)
+            if os.path.exists(path_to_save):
+                print(f'Skipping frame {frame_id}')
+                continue
+            else:
+                check = 1
+    if check == 0:
+        return 0
+                    
     for instance in grouped_instances.keys():
+        
         print(f"Merging {instance}")
 
         assert instance not in instance_accumulated_clouds_lookup
@@ -100,13 +123,19 @@ def __patch_scene(scene_id: int,
 
 
 def main():
-    nuscenes = NuScenes(version='v1.0-trainval', dataroot='../data/nuscenes', verbose=True)
+    args = parse_config()
+    
+    nuscenes = NuScenes(version='v1.0-trainval', dataroot='../nuscenes/v1.0-trainval', verbose=True)
 
     scenes = nuscenes.scene
-    for scene_id in range(len(scenes)):
+    length = len(scenes)
+
+    for scene_id in range(args.start_scene_index, length):
         __patch_scene(scene_id=scene_id,
                       accumulation_strategy=DefaultAccumulatorStrategy(),
                       nuscenes=nuscenes)
+        progress = (scene_id + 1 - args.start_scene_index) / (length - args.start_scene_index) * 100
+        print('LOCAL PROGRESS: %.2f' % progress + '%')
 
 
 if __name__ == '__main__':

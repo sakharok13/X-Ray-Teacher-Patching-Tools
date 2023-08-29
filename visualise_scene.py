@@ -6,11 +6,11 @@ from src.utils.visualisation_helper import visualise_points_cloud
 
 
 def main():
-    path = sys.argv[1]
-    print(sys.argv)
+    lidar_data_path = sys.argv[1]
 
-    lidar_point_clouds = LidarPointCloud.from_file(path)
-    visualise_points_cloud(lidar_point_clouds.points.T)
+    lidar_point_clouds = LidarPointCloud.from_file(lidar_data_path)
+    visualise_points_cloud(lidar_point_clouds.points.T,
+                           window_title=lidar_data_path)
 
 
 if __name__ == '__main__':

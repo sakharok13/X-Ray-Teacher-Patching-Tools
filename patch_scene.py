@@ -15,7 +15,7 @@ def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
     parser.add_argument('--start_scene_index', type=int, default=0, help='specify your scene index to start with')
     args = parser.parse_args()
-    
+
     return args
 
 def __get_lidarseg_patched_folder_and_filename(frame_id: str,
@@ -38,7 +38,7 @@ def __get_lidarseg_patched_folder_and_filename(frame_id: str,
 
 def __patch_scene(scene_id: int,
                   accumulation_strategy: AccumulationStrategy,
-                  nuscenes: NuScenes):
+                  nuscenes: NuScenes) -> bool:
     grouped_instances = group_instances_across_frames(scene_id=scene_id, nuscenes=nuscenes)
 
     point_cloud_accumulator = PointCloudAccumulator(step=1,
@@ -51,7 +51,8 @@ def __patch_scene(scene_id: int,
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
     
-    check = 0 
+    has_unprocessed_frames = False
+    
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
             path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
@@ -60,9 +61,9 @@ def __patch_scene(scene_id: int,
                 print(f'Skipping frame {frame_id}')
                 continue
             else:
-                check = 1
-    if check == 0:
-        return 0
+                has_unprocessed_frames = True
+    if not has_unprocessed_frames:
+        return False
                     
     for instance in grouped_instances.keys():
         

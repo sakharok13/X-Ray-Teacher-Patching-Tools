@@ -5,7 +5,10 @@ from nuscenes.utils.data_classes import LidarPointCloud
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.utils.nuscenes_helper import get_instance_point_cloud, load_frame_point_cloud
+from src.utils.o3d_helper import convert_to_o3d_pointcloud, convert_to_numpy_array
 from src.scene.scene_classes import SceneInstance
+
+import open3d as o3d
 
 
 class GediAccumulator:

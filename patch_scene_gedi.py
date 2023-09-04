@@ -1,13 +1,17 @@
 import os.path
+import datetime
 
 import numpy as np
 from nuscenes import NuScenes
+import open3d as o3d
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.accumulation.gedi_accumulator_strategy import GediAccumulatorStrategy
 from src.accumulation.gedi_accumulator import GediAccumulator
 from src.patching.nuscenes_frame_patcher import NuscenesFramePatcher
 from src.utils.nuscenes_helper import group_instances_across_frames
+from src.utils.o3d_helper import convert_to_o3d_pointcloud
+
 
 def __get_lidarseg_patched_folder_and_filename(frame_id: str,
                                                nuscenes: NuScenes):
@@ -30,28 +34,41 @@ def __get_lidarseg_patched_folder_and_filename(frame_id: str,
 def __patch_scene(scene_id: int,
                   accumulation_strategy: AccumulationStrategy,
                   nuscenes: NuScenes):
-    grouped_instances = group_instances_across_frames(scene_id=scene_id, nuscenes=nuscenes)
+    grouped_instances = group_instances_across_frames(
+        scene_id=scene_id, nuscenes=nuscenes)
 
-    point_cloud_accumulator = GediAccumulator(step=1,
-                                                    scene_id=scene_id,
-                                                    grouped_instances=grouped_instances,
-                                                    nuscenes=nuscenes)
+    point_cloud_accumulator = GediAccumulator(
+        step=1,
+        scene_id=scene_id,
+        grouped_instances=grouped_instances,
+        nuscenes=nuscenes)
 
     instance_accumulated_clouds_lookup: dict[str, np.ndarray[float]] = dict()
 
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
+    output_folder = './ply_instances/'
     for instance in grouped_instances.keys():
         print(f"Merging {instance}")
 
         assert instance not in instance_accumulated_clouds_lookup
 
-        accumulated_point_cloud = point_cloud_accumulator.merge(instance_id=instance,
-                                                                accumulation_strategy=accumulation_strategy)
+        accumulated_point_cloud = point_cloud_accumulator.merge(
+            instance_id=instance, accumulation_strategy=accumulation_strategy)
+
+        # uncomment to save accumulated instances as .ply files
+        """
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = os.path.join(output_folder, f"{instance}_{timestamp}.ply")
+        accumulated_point_cloud_o3d = convert_to_o3d_pointcloud(accumulated_point_cloud.T)  # obj instance accumulated
+        o3d.io.write_point_cloud(filename, accumulated_point_cloud_o3d)
+        """
+
         instance_accumulated_clouds_lookup[instance] = accumulated_point_cloud
 
         current_instance_index += 1
-        print(f"Processed {int((current_instance_index / overall_instances_to_process_count) * 100)}%")
+        print(
+            f"Processed {int((current_instance_index / overall_instances_to_process_count) * 100)}%")
 
     frames_to_instances_lookup: dict[str, set[str]] = dict()
     for instance, frames in grouped_instances.items():
@@ -71,11 +88,12 @@ def __patch_scene(scene_id: int,
         for instance in instances:
             # Make sure you copy instance_accumulated_clouds_lookup[instance]
             # to do not carry the rotation and translation in between frames.
-            patcher.patch_instance(instance_id=instance,
-                                   point_cloud=np.copy(instance_accumulated_clouds_lookup[instance]))
+            patcher.patch_instance(
+                instance_id=instance, point_cloud=np.copy(
+                    instance_accumulated_clouds_lookup[instance]))
 
-        path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
-                                                                  nuscenes=nuscenes)
+        path_to_save = __get_lidarseg_patched_folder_and_filename(
+            frame_id=frame_id, nuscenes=nuscenes)
 
         dir_path = os.path.dirname(path_to_save)
 
@@ -90,7 +108,10 @@ def __patch_scene(scene_id: int,
 
 
 def main():
-    nuscenes = NuScenes(version='v1.0-mini', dataroot='./data/sets/nuscenes', verbose=True)
+    nuscenes = NuScenes(
+        version='v1.0-mini',
+        dataroot='C:/data/sets/nuscenes',
+        verbose=True)
 
     scenes = nuscenes.scene
     for scene_id in range(len(scenes)):

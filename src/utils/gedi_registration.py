@@ -4,21 +4,21 @@ import open3d as o3d
 from gedi.gedi import GeDi
 
 
-def run_point_cloud_registration(movable_cloud: str,
-                                 static_cloud: str,
-                                 numpoints: int) -> o3d.geometry.PointCloud:
-    # getting a pair of point clouds
-    pcd_move = o3d.io.read_point_cloud(movable_cloud)
-    pcd_stay = o3d.io.read_point_cloud(static_cloud)
-    pcd_res = run_point_cloud_registration_o3d(pcd_move, pcd_stay, numpoints)
-
-    return pcd_res
+# def run_point_cloud_registration(movable_cloud: str,
+#                                  static_cloud: str,
+#                                  numpoints: int) -> o3d.geometry.PointCloud:
+#     # getting a pair of point clouds
+#     pcd_move = o3d.io.read_point_cloud(movable_cloud)
+#     pcd_stay = o3d.io.read_point_cloud(static_cloud)
+#     pcd_res = run_point_cloud_registration_o3d(pcd_move, pcd_stay, numpoints)
+#
+#     return pcd_res
 
 
 def run_point_cloud_registration_o3d(
         pcd_move: o3d.geometry.PointCloud,
         pcd_stay: o3d.geometry.PointCloud,
-        numpoints: int) -> o3d.geometry.PointCloud:
+        numpoints_init: int, numpoints_next: int) -> o3d.geometry.PointCloud:
 
     config = {'dim': 32,  # descriptor output dimension - keep it 32 always
               'samples_per_batch': 500,  # batches to process the data on GPU
@@ -27,7 +27,9 @@ def run_point_cloud_registration_o3d(
               # num. of points to sample for pointnet++
               'samples_per_patch_out': 512,
               'r_lrf': 1.5,  # LRF radius
-              'fchkpt_gedi_net': 'data/chkpts/3dmatch/chkpt.tar'}  # path to checkpoint
+              'fchkpt_gedi_net': '/mdrv/MyDrive/CourseWork3DDetection/gedi/data/chkpts/3dmatch/chkpt.tar'}  # path to checkpoint
+
+    numpoints = min(numpoints_init, numpoints_next)
 
     voxel_size = .01
     patches_per_pair = numpoints - int(numpoints / 10)  # int(5000 * scale_f)
@@ -35,14 +37,14 @@ def run_point_cloud_registration_o3d(
     # initialising class
     gedi = GeDi(config=config)
 
-    pcd_move.paint_uniform_color([1, 0.706, 0])
-    pcd_stay.paint_uniform_color([0, 0.651, 0.929])
+    # pcd_move.paint_uniform_color([1, 0.706, 0])
+    # pcd_stay.paint_uniform_color([0, 0.651, 0.929])
 
     # estimating normals (only for visualisation)
     pcd_move.estimate_normals()
     pcd_stay.estimate_normals()
 
-    o3d.visualization.draw_geometries([pcd_move, pcd_stay])
+    # o3d.visualization.draw_geometries([pcd_move, pcd_stay])
 
     # randomly sampling some points from the point cloud
     inds0 = np.random.choice(

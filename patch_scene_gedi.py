@@ -7,7 +7,6 @@ import open3d as o3d
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.accumulation.gedi_accumulator_strategy import GediAccumulatorStrategy
-# from src.accumulation.gedi_accumulator import GediAccumulator
 from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 from src.patching.nuscenes_frame_patcher import NuscenesFramePatcher
 from src.utils.nuscenes_helper import group_instances_across_frames

@@ -7,7 +7,8 @@ import open3d as o3d
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.accumulation.gedi_accumulator_strategy import GediAccumulatorStrategy
-from src.accumulation.gedi_accumulator import GediAccumulator
+# from src.accumulation.gedi_accumulator import GediAccumulator
+from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 from src.patching.nuscenes_frame_patcher import NuscenesFramePatcher
 from src.utils.nuscenes_helper import group_instances_across_frames
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
@@ -32,12 +33,12 @@ def __get_lidarseg_patched_folder_and_filename(frame_id: str,
 
 
 def __patch_scene(scene_id: int,
-                  accumulation_strategy: AccumulationStrategy,
+                  accumulation_strategy: GediAccumulatorStrategy,
                   nuscenes: NuScenes):
     grouped_instances = group_instances_across_frames(
         scene_id=scene_id, nuscenes=nuscenes)
 
-    point_cloud_accumulator = GediAccumulator(
+    point_cloud_accumulator = PointCloudAccumulator(
         step=1,
         scene_id=scene_id,
         grouped_instances=grouped_instances,

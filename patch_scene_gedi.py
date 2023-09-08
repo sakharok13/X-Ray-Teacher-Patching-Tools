@@ -47,7 +47,16 @@ def __patch_scene(scene_id: int,
 
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
+
     output_folder = './ply_instances/'
+    output_folder_frame = './ply_frames/'
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    if not os.path.exists(output_folder_frame):
+        os.makedirs(output_folder_frame)
+
     for instance in grouped_instances.keys():
         print(f"Merging {instance}")
 
@@ -103,6 +112,14 @@ def __patch_scene(scene_id: int,
         NuscenesFramePatcher.serialise(path=path_to_save,
                                        point_cloud=patcher.frame)
 
+        # uncomment to save patched frames as .ply files
+        """
+        filename = os.path.join(output_folder_frame, f"{current_frame_index}.ply")
+        frame_o3d = convert_to_o3d_pointcloud(patcher.frame.T)  # patched frame
+        o3d.io.write_point_cloud(filename, frame_o3d)
+        """
+
+
         current_frame_index += 1
         print(f"{int((current_frame_index / overall_frames_to_patch_count) * 100)}%, saved to {path_to_save}")
 
@@ -110,7 +127,7 @@ def __patch_scene(scene_id: int,
 def main():
     nuscenes = NuScenes(
         version='v1.0-mini',
-        dataroot='C:/data/sets/nuscenes',
+        dataroot='./data/sets/nuscenes',
         verbose=True)
 
     scenes = nuscenes.scene

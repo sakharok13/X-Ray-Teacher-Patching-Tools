@@ -1,10 +1,14 @@
 import numpy as np
+import os
+import open3d as o3d
+import datetime
 
 from nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.utils.nuscenes_helper import get_instance_point_cloud, load_frame_point_cloud
+from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
 
 class PointCloudAccumulator:
@@ -72,7 +76,23 @@ class PointCloudAccumulator:
                                     frame_id: str,
                                     instance_id: str,
                                     frame_point_cloud: LidarPointCloud) -> np.ndarray[float]:
-        return get_instance_point_cloud(frame_id=frame_id,
+
+        instance_ptcl = get_instance_point_cloud(frame_id=frame_id,
                                         instance_id=instance_id,
                                         frame_point_cloud=frame_point_cloud,
                                         nuscenes=self.__nuscenes)
+
+        # uncomment to save instances as .ply files
+        """
+        output_folder = './instances/'
+
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = os.path.join(output_folder, f"{instance_id}_{timestamp}.ply")
+        frame_o3d = convert_to_o3d_pointcloud(instance_ptcl.T)  # patched frame
+        o3d.io.write_point_cloud(filename, frame_o3d)
+        """
+
+        return instance_ptcl

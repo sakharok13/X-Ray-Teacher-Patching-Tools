@@ -31,7 +31,7 @@ class GediAccumulatorStrategy(AccumulationStrategy):
         size_next = next_point_cloud.shape[1]
 
 
-        if size_init > 30 and size_next > 30:
+        if size_init > 100 and size_next > 100:
             initial_point_cloud_o3d = convert_to_o3d_pointcloud(initial_point_cloud.T)
             next_point_cloud_o3d = convert_to_o3d_pointcloud(next_point_cloud.T)
 
@@ -40,7 +40,7 @@ class GediAccumulatorStrategy(AccumulationStrategy):
                 self.__gedi)
 
             result_point_cloud = convert_to_numpy_array(result_point_cloud_o3d)
-            return result_point_cloud
+            return np.concatenate((initial_point_cloud, result_point_cloud), axis=1)
 
         else:
             result_point_cloud = np.concatenate((initial_point_cloud, next_point_cloud), axis=1)

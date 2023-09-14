@@ -68,7 +68,8 @@ class PointCloudAccumulator:
                                                                 frame_point_cloud=frame_point_cloud)
 
             current_point_cloud = accumulation_strategy.on_merge(initial_point_cloud=current_point_cloud,
-                                                                 next_point_cloud=next_point_cloud)
+                                                                 next_point_cloud=next_point_cloud,
+                                                                 frame_id=i)
 
         return current_point_cloud
 
@@ -81,18 +82,5 @@ class PointCloudAccumulator:
                                         instance_id=instance_id,
                                         frame_point_cloud=frame_point_cloud,
                                         nuscenes=self.__nuscenes)
-
-        # uncomment to save instances as .ply files
-        """
-        output_folder = './instances/'
-
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = os.path.join(output_folder, f"{instance_id}_{timestamp}.ply")
-        frame_o3d = convert_to_o3d_pointcloud(instance_ptcl.T)  # patched frame
-        o3d.io.write_point_cloud(filename, frame_o3d)
-        """
 
         return instance_ptcl

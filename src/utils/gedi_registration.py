@@ -35,13 +35,8 @@ def run_point_cloud_registration_o3d(
     numpoints = min(numpoints_init, numpoints_next)
 
     voxel_size = .01
-    patches_per_pair = numpoints - int(numpoints / 10)  # int(5000 * scale_f)
-
-    # initialising class
-    # gedi = GeDi(config=config)
-
-    # pcd_move.paint_uniform_color([1, 0.706, 0])
-    # pcd_stay.paint_uniform_color([0, 0.651, 0.929])
+    patches_per_pair = 90 # numpoints - int(numpoints / 10)  # int(5000 * scale_f)   # 10
+    print("patches per pair: ", patches_per_pair)
 
     # estimating normals (only for visualisation)
     pcd_move.estimate_normals()

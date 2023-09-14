@@ -23,20 +23,31 @@ class GediAccumulatorStrategy(AccumulationStrategy):
                   'fchkpt_gedi_net': 'data/chkpts/3dmatch/chkpt.tar'}  # path to checkpoint
 
         self.__gedi = GeDi(config)
+        self.reference_point_cloud = np.zeros((3, 3), dtype=float)
+
 
     def on_merge(self,
                  initial_point_cloud: np.ndarray[float],
-                 next_point_cloud: np.ndarray[float]) -> np.ndarray[float]:
+                 next_point_cloud: np.ndarray[float],
+                 frame_id: int) -> np.ndarray[float]:
         size_init = initial_point_cloud.shape[1]
         size_next = next_point_cloud.shape[1]
 
+        # print("instance id: ", frame_id)
 
-        if size_init > 100 and size_next > 100:
+        if frame_id == 1:
+            self.reference_point_cloud = initial_point_cloud  # save instance from the first frame as reference
+
+        size_ref = self.reference_point_cloud.shape[1]
+
+
+        if size_init > 100 and size_next > 100 and size_ref > 100:
             initial_point_cloud_o3d = convert_to_o3d_pointcloud(initial_point_cloud.T)
+            reference_point_cloud_o3d = convert_to_o3d_pointcloud(self.reference_point_cloud.T)
             next_point_cloud_o3d = convert_to_o3d_pointcloud(next_point_cloud.T)
 
             result_point_cloud_o3d = run_point_cloud_registration_o3d(
-                next_point_cloud_o3d, initial_point_cloud_o3d, size_init, size_next,
+                next_point_cloud_o3d, reference_point_cloud_o3d, size_init, size_next,
                 self.__gedi)
 
             result_point_cloud = convert_to_numpy_array(result_point_cloud_o3d)

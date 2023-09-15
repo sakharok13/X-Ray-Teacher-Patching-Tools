@@ -5,6 +5,7 @@ from src.utils.gedi_registration import run_point_cloud_registration_o3d
 from src.utils.o3d_helper import convert_to_o3d_pointcloud, convert_to_numpy_array
 from gedi.gedi import GeDi
 
+
 class GediAccumulatorStrategy(AccumulationStrategy):
     """Provides a strategy that concatenates point clouds 'as is'.
 
@@ -25,39 +26,36 @@ class GediAccumulatorStrategy(AccumulationStrategy):
         self.__gedi = GeDi(config)
         self.reference_point_cloud = np.zeros((3, 3), dtype=float)
 
-
     def on_merge(self,
                  initial_point_cloud: np.ndarray[float],
                  next_point_cloud: np.ndarray[float],
-                 frame_id: int) -> np.ndarray[float]:
+                 frame_no: int) -> np.ndarray[float]:
         size_init = initial_point_cloud.shape[1]
         size_next = next_point_cloud.shape[1]
 
-        # print("instance id: ", frame_id)
-
-        if frame_id == 1:
-            self.reference_point_cloud = initial_point_cloud  # save instance from the first frame as reference
+        if frame_no == 1:  # starts at 1 not 0
+            # save instance from the first frame as reference
+            self.reference_point_cloud = initial_point_cloud
 
         size_ref = self.reference_point_cloud.shape[1]
 
-
         if size_init > 100 and size_next > 100 and size_ref > 100:
-            initial_point_cloud_o3d = convert_to_o3d_pointcloud(initial_point_cloud.T)
-            reference_point_cloud_o3d = convert_to_o3d_pointcloud(self.reference_point_cloud.T)
-            next_point_cloud_o3d = convert_to_o3d_pointcloud(next_point_cloud.T)
+            initial_point_cloud_o3d = convert_to_o3d_pointcloud(
+                initial_point_cloud.T)
+            reference_point_cloud_o3d = convert_to_o3d_pointcloud(
+                self.reference_point_cloud.T)
+            next_point_cloud_o3d = convert_to_o3d_pointcloud(
+                next_point_cloud.T)
 
             result_point_cloud_o3d = run_point_cloud_registration_o3d(
                 next_point_cloud_o3d, reference_point_cloud_o3d, size_init, size_next,
                 self.__gedi)
 
             result_point_cloud = convert_to_numpy_array(result_point_cloud_o3d)
-            return np.concatenate((initial_point_cloud, result_point_cloud), axis=1)
+            return np.concatenate(
+                (initial_point_cloud, result_point_cloud), axis=1)
 
         else:
-            result_point_cloud = np.concatenate((initial_point_cloud, next_point_cloud), axis=1)
+            result_point_cloud = np.concatenate(
+                (initial_point_cloud, next_point_cloud), axis=1)
             return result_point_cloud
-
-
-
-
-

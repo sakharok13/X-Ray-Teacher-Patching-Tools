@@ -133,6 +133,7 @@ def parse_arguments():
     parser.add_argument("--strategy", type=str, default="default", help="Accumulation strategy")
     parser.add_argument("--instances", action="store_true", help="Export instances")
     parser.add_argument("--frames", action="store_true", help="Export frames")
+    # parser.add_argument("--mincloud", type=int, default=100, help="Minimum cloud size for registration")
     return parser.parse_args()
 
 def main():

@@ -76,8 +76,15 @@ def run_point_cloud_registration_o3d(
             50000,
             1000))
 
-    # applying estimated transformation
-    pcd_move.transform(est_result01.transformation)
-    o3d.visualization.draw_plotly([pcd_move, pcd_stay])
+    # temp transformation filter
+    threshold = 0.2
+    transformation_difference = np.linalg.norm(est_result01.transformation - np.identity(4), 'fro')
+    # print("frobenius: ", transformation_difference)
+
+    if transformation_difference < threshold:
+        # applying estimated transformation
+        pcd_move.transform(est_result01.transformation)
+
+    # o3d.visualization.draw_plotly([pcd_move, pcd_stay])
 
     return pcd_move

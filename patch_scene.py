@@ -122,6 +122,9 @@ def __patch_scene(scene_id: int,
         current_frame_index += 1
         print(f"{int((current_frame_index / overall_frames_to_patch_count) * 100)}%, saved to {path_to_save}")
 
+    # Return OK status when finished processing.
+    return True
+
 
 def main():
     args = parse_config()

@@ -1,17 +1,15 @@
 import os
-
 import numpy as np
+
 from nuscenes import NuScenes
 from nuscenes.utils.data_classes import LidarPointCloud
 from nuscenes.utils.geometry_utils import points_in_box
 from pyquaternion import Quaternion
-
-from src.utils.nuscenes_scene_iterator import NuScenesSceneIterator
-from nuscenes.utils.geometry_utils import view_points, transform_matrix
+from nuscenes.utils.geometry_utils import transform_matrix
 
 
 def get_instance_point_cloud(frame_id: str,
-                             frame_point_cloud: LidarPointCloud,
+                             frame_point_cloud: np.ndarray,
                              instance_id: str,
                              nuscenes: NuScenes) -> np.ndarray:
     """Returns point cloud for the given instance in the given frame.
@@ -34,9 +32,9 @@ def get_instance_point_cloud(frame_id: str,
     frame = nuscenes.get('sample', frame_id)
     lidarseg_token = frame['data']['LIDAR_TOP']
 
-    frame_annotations_lookup: set[str] = set(frame['anns'])
+    frame_annotations_lookup: set = set(frame['anns'])
 
-    instance_annotations_lookup: set[str] = \
+    instance_annotations_lookup: set = \
         set(nuscenes.field2token('sample_annotation', 'instance_token', instance_id))
 
     intersection = list(set.intersection(frame_annotations_lookup, instance_annotations_lookup))
@@ -51,7 +49,7 @@ def get_instance_point_cloud(frame_id: str,
     assert len(boxes) == 1
     box = boxes[0]
 
-    points = frame_point_cloud.points[0:3, :]
+    points = frame_point_cloud[0:3, :]
     mask = points_in_box(box, points)
 
     annotation = nuscenes.get('sample_annotation', annotation_token)
@@ -61,7 +59,7 @@ def get_instance_point_cloud(frame_id: str,
     assert points_expected == points_detected, \
         f"Expected {points_expected} points, detected {points_detected} points"
 
-    instance_point_cloud = frame_point_cloud.points[:, np.where(mask)[0]]
+    instance_point_cloud = frame_point_cloud[:, np.where(mask)[0]]
 
     lidarseg_record = nuscenes.get('sample_data', lidarseg_token)
 
@@ -91,41 +89,8 @@ def get_instance_point_cloud(frame_id: str,
     return instance_point_cloud
 
 
-def group_instances_across_frames(scene_id: int,
-                                  nuscenes: NuScenes) -> dict:
-    """ Returns a dictionary of instances associated with the frames which contain them.
-
-    :param scene_id: int
-        ID of a scene where grouping is required.
-    :param nuscenes: 'NuScenes'
-        NuScenes dataset facade.
-    :return: dict[str, list[str]]
-        Returns a dict of pairs of instance id to the list of ids of frames.
-    """
-
-    grouped_instances: dict = dict()
-
-    scene_iterator = NuScenesSceneIterator(scene_id=scene_id,
-                                           nuscenes=nuscenes)
-
-    for frame_id, frame in scene_iterator:
-        annotations = frame['anns']
-
-        for annotation in annotations:
-            annotation = nuscenes.get('sample_annotation', annotation)
-
-            instance_id = annotation['instance_token']
-
-            if instance_id not in grouped_instances:
-                grouped_instances[instance_id] = list()
-
-            grouped_instances[instance_id].append(frame_id)
-
-    return grouped_instances
-
-
-def load_frame_point_cloud(frame_id: str,
-                           nuscenes: NuScenes) -> LidarPointCloud:
+def get_frame_point_cloud(frame_id: str,
+                          nuscenes: NuScenes) -> np.ndarray:
     """
 
     :param frame_id:
@@ -136,7 +101,8 @@ def load_frame_point_cloud(frame_id: str,
     lidarseg_token = frame['data']['LIDAR_TOP']
     lidarseg = nuscenes.get('sample_data', lidarseg_token)
 
-    return LidarPointCloud.from_file(os.path.join(nuscenes.dataroot, lidarseg['filename']))
+    lidar_point_cloud = LidarPointCloud.from_file(os.path.join(nuscenes.dataroot, lidarseg['filename']))
+    return lidar_point_cloud.points
 
 
 def reapply_scene_transformation(annotation_token: str,

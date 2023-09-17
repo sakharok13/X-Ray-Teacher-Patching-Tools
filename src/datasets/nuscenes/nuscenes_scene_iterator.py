@@ -2,17 +2,19 @@ from __future__ import annotations
 
 from nuscenes import NuScenes
 
+from src.datasets.dataset import Dataset
+from src.datasets.frame_descriptor import FrameDescriptor
 
-class NuScenesSceneIterator:
+
+class NuScenesSceneIterator(Dataset.SceneIterator):
     """Iterator over frames in a NuScenes scene.
     """
 
     def __init__(self,
-                 scene_id: int,
+                 scene: dict,
                  nuscenes: NuScenes):
-        self.__scene_id = scene_id
+        self.__scene = scene
         self.__nuscenes = nuscenes
-        self.__scene = nuscenes.scene[scene_id]
         self.__current_sample = self.__get_first_frame()
 
     def __iter__(self) -> NuScenesSceneIterator:
@@ -21,7 +23,7 @@ class NuScenesSceneIterator:
         self.__current_sample = self.__get_first_frame()
         return self
 
-    def __next__(self) -> tuple:
+    def __next__(self) -> tuple[str, FrameDescriptor]:
         """Returns next frame.
 
         :return: tuple[str, dict[str, any]]
@@ -32,11 +34,13 @@ class NuScenesSceneIterator:
             raise StopIteration()
 
         frame_id = self.__current_sample
-        frame = self.__nuscenes.get('sample', frame_id)
+        raw_frame = self.__nuscenes.get('sample', frame_id)
 
-        self.__current_sample = frame['next']
+        instance_ids = [self.__nuscenes.get('sample_annotation', annotation)['instance_token'] for annotation in raw_frame['anns']]
 
-        return frame_id, frame
+        self.__current_sample = raw_frame['next']
+
+        return frame_id, FrameDescriptor(frame_id=frame_id, instances_ids=instance_ids)
 
     def __get_first_frame(self) -> str:
         """Returns first frame id.

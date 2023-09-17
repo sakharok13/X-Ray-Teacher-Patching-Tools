@@ -5,8 +5,8 @@ import numpy as np
 from nuscenes import NuScenes
 from nuscenes.utils.geometry_utils import points_in_box
 
-from src.patching.frame_patcher import FramePatcher
-from src.utils.nuscenes_helper import load_frame_point_cloud, reapply_scene_transformation
+from src.datasets.frame_patcher import FramePatcher
+from src.datasets.nuscenes.nuscenes_utils import get_frame_point_cloud, reapply_scene_transformation
 
 
 class NuscenesFramePatcher(FramePatcher):
@@ -34,10 +34,10 @@ class NuscenesFramePatcher(FramePatcher):
         :return: 'NuscenesFramePatcher'
             A constructed instance.
         """
-        lidar_point_cloud = load_frame_point_cloud(frame_id=frame_id,
-                                                   nuscenes=nuscenes)
+        lidar_point_cloud = get_frame_point_cloud(frame_id=frame_id,
+                                                  nuscenes=nuscenes)
         return NuscenesFramePatcher(frame_id=frame_id,
-                                    frame_point_cloud=lidar_point_cloud.points,
+                                    frame_point_cloud=lidar_point_cloud,
                                     nuscenes=nuscenes)
 
     @classmethod

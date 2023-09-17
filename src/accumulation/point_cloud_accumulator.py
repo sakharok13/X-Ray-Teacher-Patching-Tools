@@ -1,10 +1,7 @@
 import numpy as np
 
-from nuscenes import NuScenes
-from nuscenes.utils.data_classes import LidarPointCloud
-
 from src.accumulation.accumulation_strategy import AccumulationStrategy
-from src.utils.nuscenes_helper import get_instance_point_cloud, load_frame_point_cloud
+from src.datasets.dataset import Dataset
 
 
 class PointCloudAccumulator:
@@ -13,16 +10,14 @@ class PointCloudAccumulator:
 
     def __init__(self,
                  step: int,
-                 scene_id: int,
                  grouped_instances: dict,
-                 nuscenes: NuScenes):
+                 dataset: Dataset):
         assert step > 0, \
             f"Step should be greater than 0, but got {step}"
 
         self.__step = step
-        self.__scene_id = scene_id
         self.__grouped_instances = grouped_instances
-        self.__nuscenes = nuscenes
+        self.__dataset = dataset
 
     def merge(self,
               instance_id: str,
@@ -40,41 +35,29 @@ class PointCloudAccumulator:
         assert instance_id in self.__grouped_instances, \
             f"Unknown instance_id {instance_id}"
 
-        instance_frames: list[str] = self.__grouped_instances[instance_id]
+        instance_frames: list = self.__grouped_instances[instance_id]
 
         assert len(instance_frames) > 0, \
             f"Instance has not been detected in any frames"
 
         first_frame_id = instance_frames[0]
-        first_frame_point_cloud = load_frame_point_cloud(frame_id=first_frame_id,
-                                                         nuscenes=self.__nuscenes)
+        first_frame_point_cloud = self.__dataset.get_frame_point_cloud(frame_id=first_frame_id)
 
-        current_point_cloud = self.__load_instance_point_cloud(frame_id=first_frame_id,
-                                                               instance_id=instance_id,
-                                                               frame_point_cloud=first_frame_point_cloud)
+        current_point_cloud = self.__dataset.get_instance_point_cloud(frame_id=first_frame_id,
+                                                                      instance_id=instance_id,
+                                                                      frame_point_cloud=first_frame_point_cloud)
 
         for i in range(self.__step, len(instance_frames), self.__step):
             frame_id = instance_frames[i]
 
-            frame_point_cloud = load_frame_point_cloud(frame_id=frame_id,
-                                                       nuscenes=self.__nuscenes)
+            frame_point_cloud = self.__dataset.get_frame_point_cloud(frame_id=frame_id)
 
-            next_point_cloud = self.__load_instance_point_cloud(frame_id=frame_id,
-                                                                instance_id=instance_id,
-                                                                frame_point_cloud=frame_point_cloud)
+            next_point_cloud = self.__dataset.get_instance_point_cloud(frame_id=frame_id,
+                                                                       instance_id=instance_id,
+                                                                       frame_point_cloud=frame_point_cloud)
 
             current_point_cloud = accumulation_strategy.on_merge(initial_point_cloud=current_point_cloud,
                                                                  next_point_cloud=next_point_cloud,
                                                                  frame_no=i)
 
         return current_point_cloud
-
-    def __load_instance_point_cloud(self,
-                                    frame_id: str,
-                                    instance_id: str,
-                                    frame_point_cloud: LidarPointCloud) -> np.ndarray:
-        return get_instance_point_cloud(frame_id=frame_id,
-                                        instance_id=instance_id,
-                                        frame_point_cloud=frame_point_cloud,
-                                        nuscenes=self.__nuscenes)
-

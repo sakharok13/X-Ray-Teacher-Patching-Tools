@@ -16,13 +16,6 @@ from src.utils.nuscenes_helper import group_instances_across_frames
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
 
-def parse_config():
-    parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('--start_scene_index', type=int, default=0, help='specify your scene index to start with')
-    args = parser.parse_args()
-
-    return args
-
 accumulator_strategies = {
     'default': DefaultAccumulatorStrategy(),
     'gedi': GediAccumulatorStrategy(),
@@ -169,13 +162,11 @@ def parse_arguments():
     parser.add_argument("--strategy", type=str, default="default", help="Accumulation strategy")
     parser.add_argument("--instances", action="store_true", help="Export instances")
     parser.add_argument("--frames", action="store_true", help="Export frames")
+    parser.add_argument('--start_scene_index', type=int, default=0, help='specify your scene index to start with')
     # parser.add_argument("--mincloud", type=int, default=100, help="Minimum cloud size for registration")
     return parser.parse_args()
 
 def main():
-    args = parse_config()
-    
-    nuscenes = NuScenes(version='v1.0-trainval', dataroot='../nuscenes/v1.0-trainval', verbose=True)
     args = parse_arguments()
 
     nuscenes = NuScenes(version=args.version, dataroot=args.dataroot, verbose=True)
@@ -189,8 +180,7 @@ def main():
                       nuscenes=nuscenes,
                       export_instances=args.instances,
                       export_frames=args.frames)
-                      accumulation_strategy=DefaultAccumulatorStrategy(),
-                      nuscenes=nuscenes)
+
         progress = (scene_id + 1 - args.start_scene_index) / (length - args.start_scene_index) * 100
         print('LOCAL PROGRESS: %.2f' % progress + '%')
 

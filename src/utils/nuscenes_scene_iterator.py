@@ -21,7 +21,7 @@ class NuScenesSceneIterator:
         self.__current_sample = self.__get_first_frame()
         return self
 
-    def __next__(self) -> tuple[str, dict[str, any]]:
+    def __next__(self) -> tuple:
         """Returns next frame.
 
         :return: tuple[str, dict[str, any]]

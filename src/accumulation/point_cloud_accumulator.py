@@ -14,7 +14,7 @@ class PointCloudAccumulator:
     def __init__(self,
                  step: int,
                  scene_id: int,
-                 grouped_instances: dict[str, list[str]],
+                 grouped_instances: dict,
                  nuscenes: NuScenes):
         assert step > 0, \
             f"Step should be greater than 0, but got {step}"
@@ -26,7 +26,7 @@ class PointCloudAccumulator:
 
     def merge(self,
               instance_id: str,
-              accumulation_strategy: AccumulationStrategy) -> np.ndarray[float]:
+              accumulation_strategy: AccumulationStrategy) -> np.ndarray:
         """Accumulates the point cloud of the given object across the scene using accumulation strategy.
 
         :param instance_id: str
@@ -72,9 +72,8 @@ class PointCloudAccumulator:
     def __load_instance_point_cloud(self,
                                     frame_id: str,
                                     instance_id: str,
-                                    frame_point_cloud: LidarPointCloud) -> np.ndarray[float]:
-
-        instance_ptcl = get_instance_point_cloud(frame_id=frame_id,
+                                    frame_point_cloud: LidarPointCloud) -> np.ndarray:
+        return get_instance_point_cloud(frame_id=frame_id,
                                         instance_id=instance_id,
                                         frame_point_cloud=frame_point_cloud,
                                         nuscenes=self.__nuscenes)

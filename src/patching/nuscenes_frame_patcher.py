@@ -15,7 +15,7 @@ class NuscenesFramePatcher(FramePatcher):
 
     def __init__(self,
                  frame_id: str,
-                 frame_point_cloud: np.ndarray[float],
+                 frame_point_cloud: np.ndarray,
                  nuscenes: NuScenes):
         self.__frame_id = frame_id
         self.__frame_point_cloud = frame_point_cloud
@@ -43,7 +43,7 @@ class NuscenesFramePatcher(FramePatcher):
     @classmethod
     def serialise(cls,
                   path: str,
-                  point_cloud: np.ndarray[float]):
+                  point_cloud: np.ndarray):
         """Serialises the given frame into a .bin file.
         """
 
@@ -63,12 +63,12 @@ class NuscenesFramePatcher(FramePatcher):
         return self.__frame_id
 
     @property
-    def frame(self) -> np.ndarray[float]:
+    def frame(self) -> np.ndarray:
         return self.__frame_point_cloud
 
     def patch_instance(self,
                        instance_id: str,
-                       point_cloud: np.ndarray[float]):
+                       point_cloud: np.ndarray):
         frame = self.__nuscenes.get('sample', self.__frame_id)
 
         lidarseg_token = frame['data']['LIDAR_TOP']

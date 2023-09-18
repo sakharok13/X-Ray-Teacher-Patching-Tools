@@ -1,3 +1,4 @@
+import argparse
 import os.path
 import datetime
 import argparse
@@ -14,6 +15,13 @@ from src.patching.nuscenes_frame_patcher import NuscenesFramePatcher
 from src.utils.nuscenes_helper import group_instances_across_frames
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
+
+def parse_config():
+    parser = argparse.ArgumentParser(description='arg parser')
+    parser.add_argument('--start_scene_index', type=int, default=0, help='specify your scene index to start with')
+    args = parser.parse_args()
+
+    return args
 
 accumulator_strategies = {
     'default': DefaultAccumulatorStrategy(),
@@ -50,10 +58,25 @@ def __patch_scene(scene_id: int,
                                                     grouped_instances=grouped_instances,
                                                     nuscenes=nuscenes)
 
-    instance_accumulated_clouds_lookup: dict[str, np.ndarray[float]] = dict()
+    instance_accumulated_clouds_lookup: dict = dict()
 
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
+    
+    has_unprocessed_frames = False
+    
+    for instance, frames in grouped_instances.items():
+        for frame_id in frames:
+            path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
+                                                                      nuscenes=nuscenes)
+            if os.path.exists(path_to_save):
+                print(f'Skipping frame {frame_id}')
+                continue
+            else:
+                has_unprocessed_frames = True
+    if not has_unprocessed_frames:
+        return False
+                    
 
     output_folder = './ply_instances_geo/'
     output_folder_frame = './ply_frames_geo/'
@@ -65,6 +88,7 @@ def __patch_scene(scene_id: int,
         os.makedirs(output_folder_frame)
 
     for instance in grouped_instances.keys():
+        
         print(f"Merging {instance}")
 
         assert instance not in instance_accumulated_clouds_lookup
@@ -84,16 +108,28 @@ def __patch_scene(scene_id: int,
         current_instance_index += 1
         print(f"Processed {int((current_instance_index / overall_instances_to_process_count) * 100)}%")
 
-    frames_to_instances_lookup: dict[str, set[str]] = dict()
+    frames_to_instances_lookup: dict = dict()
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
             if frame_id not in frames_to_instances_lookup:
+                path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
+                                                                          nuscenes=nuscenes)
+                if os.path.exists(path_to_save):
+                    print(f'Skipping frame {frame_id}')
+                    continue
+                    
                 frames_to_instances_lookup[frame_id] = set()
             frames_to_instances_lookup[frame_id].add(instance)
 
     current_frame_index = 0
     overall_frames_to_patch_count = len(frames_to_instances_lookup)
     for frame_id, instances in frames_to_instances_lookup.items():
+        path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
+                                                          nuscenes=nuscenes)
+        if os.path.exists(path_to_save):
+            print(f'Skipping frame {frame_id}')
+            continue
+            
         print(f"Patching {frame_id}")
 
         patcher = NuscenesFramePatcher.load(frame_id=frame_id,
@@ -104,9 +140,6 @@ def __patch_scene(scene_id: int,
             # to do not carry the rotation and translation in between frames.
             patcher.patch_instance(instance_id=instance,
                                    point_cloud=np.copy(instance_accumulated_clouds_lookup[instance]))
-
-        path_to_save = __get_lidarseg_patched_folder_and_filename(frame_id=frame_id,
-                                                                  nuscenes=nuscenes)
 
         dir_path = os.path.dirname(path_to_save)
 
@@ -124,6 +157,9 @@ def __patch_scene(scene_id: int,
         current_frame_index += 1
         print(f"{int((current_frame_index / overall_frames_to_patch_count) * 100)}%, saved to {path_to_save}")
 
+    # Return OK status when finished processing.
+    return True
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="patch scene arguments")
@@ -137,17 +173,26 @@ def parse_arguments():
     return parser.parse_args()
 
 def main():
+    args = parse_config()
+    
+    nuscenes = NuScenes(version='v1.0-trainval', dataroot='../nuscenes/v1.0-trainval', verbose=True)
     args = parse_arguments()
 
     nuscenes = NuScenes(version=args.version, dataroot=args.dataroot, verbose=True)
     accumulator_strategy = accumulator_strategies[args.strategy]
     scenes = nuscenes.scene
-    for scene_id in range(len(scenes)):
+    length = len(scenes)
+
+    for scene_id in range(args.start_scene_index, length):
         __patch_scene(scene_id=scene_id,
                       accumulation_strategy=accumulator_strategy,
                       nuscenes=nuscenes,
                       export_instances=args.instances,
                       export_frames=args.frames)
+                      accumulation_strategy=DefaultAccumulatorStrategy(),
+                      nuscenes=nuscenes)
+        progress = (scene_id + 1 - args.start_scene_index) / (length - args.start_scene_index) * 100
+        print('LOCAL PROGRESS: %.2f' % progress + '%')
 
 
 if __name__ == '__main__':

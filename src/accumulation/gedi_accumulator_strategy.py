@@ -27,9 +27,9 @@ class GediAccumulatorStrategy(AccumulationStrategy):
         self.reference_point_cloud = np.zeros((3, 3), dtype=float)
 
     def on_merge(self,
-                 initial_point_cloud: np.ndarray[float],
-                 next_point_cloud: np.ndarray[float],
-                 frame_no: int) -> np.ndarray[float]:
+                 initial_point_cloud: np.ndarray,
+                 next_point_cloud: np.ndarray,
+                 frame_no: int) -> np.ndarray:
         size_init = initial_point_cloud.shape[1]
         size_next = next_point_cloud.shape[1]
 

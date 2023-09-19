@@ -78,4 +78,3 @@ class PointCloudAccumulator:
                                         frame_point_cloud=frame_point_cloud,
                                         nuscenes=self.__nuscenes)
 
-        return instance_ptcl

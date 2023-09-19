@@ -64,7 +64,8 @@ class PointCloudAccumulator:
                                                                 frame_point_cloud=frame_point_cloud)
 
             current_point_cloud = accumulation_strategy.on_merge(initial_point_cloud=current_point_cloud,
-                                                                 next_point_cloud=next_point_cloud)
+                                                                 next_point_cloud=next_point_cloud,
+                                                                 frame_no=i)
 
         return current_point_cloud
 
@@ -76,3 +77,4 @@ class PointCloudAccumulator:
                                         instance_id=instance_id,
                                         frame_point_cloud=frame_point_cloud,
                                         nuscenes=self.__nuscenes)
+

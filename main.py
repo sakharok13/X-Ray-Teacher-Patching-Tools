@@ -1,18 +1,19 @@
-from nuscenes import NuScenes
-
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
 from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
-from src.patching.nuscenes_frame_patcher import NuscenesFramePatcher
-from src.utils.nuscenes_helper import group_instances_across_frames
+
+from src.datasets.dataset import Dataset
+from src.utils.dataset_helper import group_instances_across_frames
+from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
+
 from src.utils.visualisation_helper import visualise_points_cloud
 
 
 def main():
-    nuscenes = NuScenes(version='v1.0-mini', dataroot='./temp/nuscenes', verbose=True)
+    dataset: Dataset = NuscenesDataset(version='v1.0-mini', dataroot='./temp/nuscenes')
 
-    grouped_instances = group_instances_across_frames(scene_id=0, nuscenes=nuscenes)
+    grouped_instances = group_instances_across_frames(scene_id='0', dataset=dataset)
 
-    instances_per_frames_lookup: dict[str, set[str]] = dict()
+    instances_per_frames_lookup = dict()
     for instance, frames in grouped_instances.items():
         for frame in frames:
             if frame not in instances_per_frames_lookup:
@@ -22,13 +23,12 @@ def main():
     print({i: len(v) for i, v in instances_per_frames_lookup.items()})
 
     point_cloud_accumulator = PointCloudAccumulator(step=1,
-                                                    scene_id=0,
                                                     grouped_instances=grouped_instances,
-                                                    nuscenes=nuscenes)
+                                                    dataset=dataset)
     default_accumulation_strategy = DefaultAccumulatorStrategy()
 
     frame_id = '9813c23a5f1448b09bb7910fea9baf20'
-    instance_ids: set[str] = set()
+    instance_ids = set()
 
     for instance_id, frames in grouped_instances.items():
         for frame in frames:
@@ -37,8 +37,7 @@ def main():
 
     print('Detected', len(instance_ids), 'objects in the frame')
 
-    frame_patcher = NuscenesFramePatcher.load(frame_id=frame_id,
-                                              nuscenes=nuscenes)
+    frame_patcher = dataset.load_frame_patcher(frame_id=frame_id)
     # Original unmodified frame.
     visualise_points_cloud(frame_patcher.frame.T)
 
@@ -46,10 +45,10 @@ def main():
         accumulated_point_cloud = point_cloud_accumulator.merge(instance_id=instance_id,
                                                                 accumulation_strategy=default_accumulation_strategy)
 
-        print('frames for', instance_id, 'are', grouped_instances[instance_id])
+        print('frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
-        visualise_points_cloud(accumulated_point_cloud.T)
+        # visualise_points_cloud(accumulated_point_cloud.T)
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)
@@ -57,10 +56,9 @@ def main():
     # Patched scene.
     visualise_points_cloud(frame_patcher.frame.T)
 
-    scene_file = f"{frame_patcher.frame_id}.bin"
-    NuscenesFramePatcher.serialise(path=scene_file,
-                                   point_cloud=frame_patcher.frame)
-    print('File saved to:', scene_file)
+    saved_path = dataset.serialise_frame_point_clouds(frame_id=frame_patcher.frame_id,
+                                                      frame_point_cloud=frame_patcher.frame)
+    print('File saved to:', saved_path)
 
 
 if __name__ == '__main__':

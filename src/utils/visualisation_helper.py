@@ -6,7 +6,7 @@ def visualise_points_cloud(points: np.ndarray,
                            window_title: str = 'Scene visualisation'):
     """Draws a point cloud in open3d.
 
-    :param points: np.ndarray
+    :param points: np.ndarray[float]
         Point cloud as a mxk float numpy array.
     :param window_title: str
         Title of the window.

@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from src.datasets.frame_patcher import FramePatcher
-from src.datasets.waymo.waymo_utils import load_frame_point_cloud
+from src.datasets.waymo.waymo_utils import get_frame_point_cloud, reapply_frame_transformation
 from src.utils.geometry_utils import points_in_box
 
 
@@ -12,35 +12,29 @@ class WaymoFramePatcher(FramePatcher):
     """
 
     def __init__(self,
+                 scene_id: str,
                  frame_id: str,
                  frame_point_cloud: np.ndarray,
-                 scenes_descriptors: list):
+                 frame_descriptor: dict):
+        self.__scene_id = scene_id
         self.__frame_id = frame_id
         self.__frame_point_cloud = frame_point_cloud
-        self.scenes_descriptors = scenes_descriptors
+        self.__frame_descriptor = frame_descriptor
 
     @classmethod
     def load(cls,
              dataset_root: str,
              scene_id: str,
              frame_id: str,
-             scenes_descriptors: list) -> WaymoFramePatcher:
-        """Creates NuscenesFramePatcher instance.
+             scene_descriptor: dict) -> WaymoFramePatcher:
+        lidar_point_cloud = get_frame_point_cloud(dataset_root=dataset_root,
+                                                  scene_id=scene_id,
+                                                  frame_descriptor=scene_descriptor[frame_id])
 
-        :param frame_id: str
-            ID of a frame.
-        :param nuscenes: 'NuScenes'
-            Default NuScenes library facade.
-        :return: 'NuscenesFramePatcher'
-            A constructed instance.
-        """
-        lidar_point_cloud = load_frame_point_cloud(dataset_root=dataset_root,
-                                                   scene_id=scene_id,
-                                                   frame_id=frame_id)
-
-        return WaymoFramePatcher(frame_id=frame_id,
+        return WaymoFramePatcher(scene_id=scene_id,
+                                 frame_id=frame_id,
                                  frame_point_cloud=lidar_point_cloud,
-                                 scenes_descriptors=scenes_descriptors)
+                                 frame_descriptor=scene_descriptor[frame_id])
 
     @classmethod
     def serialise(cls,
@@ -55,6 +49,10 @@ class WaymoFramePatcher(FramePatcher):
         np.save(point_cloud)
 
     @property
+    def scene_id(self) -> str:
+        return self.__scene_id
+
+    @property
     def frame_id(self) -> str:
         return self.__frame_id
 
@@ -65,38 +63,29 @@ class WaymoFramePatcher(FramePatcher):
     def patch_instance(self,
                        instance_id: str,
                        point_cloud: np.ndarray):
-        frame = self.__nuscenes.get('sample', self.__frame_id)
+        annotations = self.__frame_descriptor['annotations']
+        ids = annotations['ids']
 
-        lidarseg_token = frame['data']['LIDAR_TOP']
+        instance_index = np.where(ids == instance_id)
+        instance_column = instance_index[0][0]
 
-        frame_annotations_lookup: set[str] = set(frame['anns'])
-
-        instance_annotations_lookup: set[str] = \
-            set(self.__nuscenes.field2token('sample_annotation', 'instance_token', instance_id))
-
-        intersection = list(set.intersection(frame_annotations_lookup, instance_annotations_lookup))
-
-        assert len(intersection) == 1, \
-            f"Frame {self.__frame_id} should have the only instance of {instance_id}"
-
-        annotation_token = intersection[0]
-
-        _, boxes, _ = self.__nuscenes.get_sample_data(lidarseg_token, selected_anntokens=[annotation_token])
-
-        assert len(boxes) == 1
-        box = boxes[0]
+        center_xyz = annotations['locations'][instance_column, :]
+        dimensions_lwh = annotations['dimensions'][instance_column, :]
+        heading_angle = annotations['heading_angles'][instance_column]
 
         points = self.__frame_point_cloud[0:3, :]
-        mask = points_in_box(box, points)
+        mask = points_in_box(center_xyz=center_xyz,
+                             dimensions_lwh=dimensions_lwh,
+                             heading_angle=heading_angle,
+                             points=points)
 
         # Remove masked elements in frame.
         self.__frame_point_cloud = self.__frame_point_cloud[:, np.where(~mask)[0]]
 
         # Put the object back into the scene.
-        point_cloud = reapply_scene_transformation(annotation_token=annotation_token,
-                                                   lidarseg_token=lidarseg_token,
-                                                   point_cloud=point_cloud,
-                                                   nuscenes=self.__nuscenes)
+        point_cloud = reapply_frame_transformation(point_cloud=point_cloud,
+                                                   instance_id=instance_id,
+                                                   frame_descriptor=self.__frame_descriptor)
 
         # Append instance patch: append should happen along
         self.__frame_point_cloud = np.concatenate((self.__frame_point_cloud, point_cloud), axis=1)

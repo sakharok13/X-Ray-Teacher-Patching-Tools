@@ -10,9 +10,10 @@ class WaymoSceneIterator(Dataset.SceneIterator):
 
     def __init__(self,
                  scene_id: str,
-                 scene_descriptors: list):
+                 scene_descriptor: dict):
         self.__scene_id = scene_id
-        self.__scene_descriptors = scene_descriptors
+        self.__scene_descriptor = scene_descriptor
+        self.__frame_ids = sorted(scene_descriptor.keys())
         self.__current_frame = 0
 
     def __iter__(self) -> WaymoSceneIterator:
@@ -28,12 +29,13 @@ class WaymoSceneIterator(Dataset.SceneIterator):
             Returns a tuple of frame id to frame meta-information
         """
 
-        if self.__current_frame >= len(self.__scene_descriptors):
+        if self.__current_frame >= len(self.__frame_ids):
             raise StopIteration()
 
-        frame_metadata = self.__scene_descriptors[self.__current_frame]
+        frame_id = self.__frame_ids[self.__current_frame]
+        frame_metadata = self.__scene_descriptor[frame_id]
 
-        frame_id = frame_metadata['frame_id']
+        assert frame_id == frame_metadata['frame_id']
 
         instance_ids = frame_metadata['annotations']['ids']
 

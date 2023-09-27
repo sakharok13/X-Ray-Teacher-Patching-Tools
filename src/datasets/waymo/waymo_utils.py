@@ -105,7 +105,7 @@ def reapply_frame_transformation(point_cloud: np.ndarray,
 
     reverse_transformation = transform_matrix(center_xyz,
                                               Quaternion(heading_angle, 0, 0, 1),
-                                              inverse=True)
+                                              inverse=False)
 
     instance_point_cloud = __apply_transformation_matrix(point_cloud=point_cloud,
                                                          transformation_matrix=reverse_transformation)

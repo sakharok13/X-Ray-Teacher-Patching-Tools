@@ -46,7 +46,7 @@ class WaymoFramePatcher(FramePatcher):
         if not path.endswith('.npy'):
             raise Exception(f"Supports only npy files, got: {path}")
 
-        np.save(point_cloud)
+        np.save(path, point_cloud)
 
     @property
     def scene_id(self) -> str:

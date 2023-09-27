@@ -61,14 +61,14 @@ def main():
                                                                 accumulation_strategy=default_accumulation_strategy)
 
         print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
-        print('Progress', f"{(i/len(instance_ids) * 100):.1f}%")
 
         # Visualise accumulated point cloud.
-        visualise_points_cloud(accumulated_point_cloud.T)
+        # visualise_points_cloud(accumulated_point_cloud.T)
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)
-        break
+
+        print('Progress', f"{(i/len(instance_ids) * 100):.1f}%")
 
     # Patched scene.
     visualise_points_cloud(frame_patcher.frame.T)

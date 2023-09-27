@@ -45,7 +45,8 @@ def __patch_scene(scene_id: str,
 
         assert instance not in instance_accumulated_clouds_lookup
 
-        accumulated_point_cloud = point_cloud_accumulator.merge(instance_id=instance,
+        accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
+                                                                instance_id=instance,
                                                                 accumulation_strategy=accumulation_strategy)
 
         if export_instances:
@@ -72,7 +73,8 @@ def __patch_scene(scene_id: str,
     for frame_id, instances in frames_to_instances_lookup.items():
         print(f"Patching {frame_id}")
 
-        patcher = dataset.load_frame_patcher(frame_id=frame_id)
+        patcher = dataset.load_frame_patcher(scene_id=scene_id,
+                                             frame_id=frame_id)
 
         for instance in instances:
             # Make sure you copy instance_accumulated_clouds_lookup[instance]
@@ -80,7 +82,8 @@ def __patch_scene(scene_id: str,
             patcher.patch_instance(instance_id=instance,
                                    point_cloud=np.copy(instance_accumulated_clouds_lookup[instance]))
 
-        saved_path = dataset.serialise_frame_point_clouds(frame_id=frame_id,
+        saved_path = dataset.serialise_frame_point_clouds(scene_id=scene_id,
+                                                          frame_id=frame_id,
                                                           frame_point_cloud=patcher.frame)
 
         if export_frames:

@@ -32,11 +32,14 @@ class NuscenesDataset(Dataset):
         return NuScenesSceneIterator(scene=self.__scenes_lookup[scene_id],
                                      nuscenes=self.__nuscenes)
 
-    def load_frame_patcher(self, frame_id: str) -> FramePatcher:
+    def load_frame_patcher(self,
+                           scene_id: str,
+                           frame_id: str) -> FramePatcher:
         return NuscenesFramePatcher.load(frame_id=frame_id,
                                          nuscenes=self.__nuscenes)
 
     def serialise_frame_point_clouds(self,
+                                     scene_id: str,
                                      frame_id: str,
                                      frame_point_cloud: np.ndarray) -> Optional[str]:
         path_to_save = self.__get_lidarseg_patched_folder_and_filename(frame_id)
@@ -52,11 +55,13 @@ class NuscenesDataset(Dataset):
         return path_to_save
 
     def get_frame_point_cloud(self,
+                              scene_id: str,
                               frame_id: str) -> np.ndarray:
         return get_frame_point_cloud(frame_id=frame_id,
                                      nuscenes=self.__nuscenes)
 
     def get_instance_point_cloud(self,
+                                 scene_id: str,
                                  frame_id: str,
                                  instance_id: str,
                                  frame_point_cloud: np.ndarray) -> np.ndarray:

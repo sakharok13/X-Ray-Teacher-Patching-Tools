@@ -11,6 +11,7 @@ from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 
 from src.datasets.dataset import Dataset
 from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
+from src.datasets.waymo.waymo_dataset import WaymoDataset
 from src.utils.dataset_helper import group_instances_across_frames
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
@@ -110,21 +111,28 @@ accumulator_strategies = {
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="patch scene arguments")
-    parser.add_argument("--version", type=str, default="v1.0-mini", help="NuScenes version")
-    parser.add_argument("--dataroot", type=str, default="./temp/nuscenes", help="Data root location")
-    # defalut="./temp/nuscenes"
-    parser.add_argument("--strategy", type=str, default="default", help="Accumulation strategy")
-    parser.add_argument("--instances", action="store_true", help="Export instances")
-    parser.add_argument("--frames", action="store_true", help="Export frames")
-    parser.add_argument('--start_scene_index', type=int, default=0, help='specify your scene index to start with')
-    # parser.add_argument("--mincloud", type=int, default=100, help="Minimum cloud size for registration")
+    parser.add_argument("--dataset", type=str, choices=['nuscenes', 'waymo'], default='nuscenes', help="Dataset.")
+    parser.add_argument("--version", type=str, default="v1.0-mini", help="NuScenes version.")
+    parser.add_argument("--dataroot", type=str, default="./temp/nuscenes", help="Data root location.")
+    parser.add_argument("--strategy", type=str, default="default", help="Accumulation strategy.")
+    parser.add_argument("--instances", action="store_true", help="Export instances.")
+    parser.add_argument("--frames", action="store_true", help="Export frames.")
+    parser.add_argument('--start_scene_index', type=int, default=0, help='Specify your scene index to start with.')
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
 
-    dataset = NuscenesDataset(version=args.version, dataroot=args.dataroot)
+    dataset_type = args.dataset
+
+    if dataset_type == 'nuscenes':
+        dataset = NuscenesDataset(version=args.version, dataroot=args.dataroot)
+    elif dataset_type == 'waymo':
+        dataset = WaymoDataset(dataset_root=args.dataroot)
+    else:
+        raise Exception(f"Unknown dataset {dataset_type}")
+
     accumulator_strategy = accumulator_strategies[args.strategy]
 
     scenes = dataset.scenes

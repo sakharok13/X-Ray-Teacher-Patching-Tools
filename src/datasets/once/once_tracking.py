@@ -1,13 +1,5 @@
-import json
-import functools
-import open3d as o3d
-import os.path as osp
-from collections import defaultdict
-import cv2
 import numpy as np
-from scipy.spatial.transform import Rotation
 import os
-import re
 import json
 
 class Instance:
@@ -35,6 +27,7 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
     i = 0
     while i < (len(frame_ids) - 1):
 
+
         current_annotations = dataset.get_frame_anno(seq_id, frame_ids[i])
         if current_annotations is None:
             i += 1
@@ -50,7 +43,7 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
         frame_id = frame_ids[i]
         print("processing frame " + str(i) + " of " +
               str(len(frame_ids)) + " id: " + str(frame_id))
-        points = dataset.load_point_cloud(seq_id, frame_id)
+        # points = dataset.load_point_cloud(seq_id, frame_id)
 
         current_categories = current_annotations['names']
         current_boxes_3d = current_annotations['boxes_3d']
@@ -63,7 +56,10 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
 
         if not instances_dict:
             # first frame
+            first_instance_ids = []
+
             for idx, category in enumerate(current_categories):
+                first_instance_ids.append(len(instances_dict))
                 instance = Instance(instance_id=len(instances_dict),
                                     tracking=[],
                                     category=category,
@@ -76,11 +72,16 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
                 # instance.clouds.append(get_instance_ptcloud(points, box))
                 instances_dict[len(instances_dict)] = instance
 
+            # fill instance ids for the first frame with annotations
+            data["frames"][i]["annos"]["instance_ids"] = first_instance_ids
+
+        next_instance_ids = []
+
         for idx, next_category in enumerate(next_categories):
             next_box_3d = next_boxes_3d[idx]
             next_center = [next_box_3d[0], next_box_3d[1], next_box_3d[2]]
             matched_instance_id = None
-            min_distance = max(next_box_3d[3:6]) * 3
+            min_distance = max(next_box_3d[3:6]) * 2
 
             for instance_id, instance in instances_dict.items():
                 if frame_id in instance.frame_ids and instance.category == next_category:
@@ -97,7 +98,8 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
                         matched_instance_id = instance_id
 
             if matched_instance_id is not None:
-                # matched instance.
+                # matched
+                next_instance_ids.append(matched_instance_id)
                 instances_dict[matched_instance_id].frame_ids.append(
                     next_frame_id)
                 instances_dict[matched_instance_id].boxes_3d.append(
@@ -105,6 +107,7 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
 
             else:
                 # unmatched object
+                next_instance_ids.append(len(instances_dict))
                 new_instance = Instance(instance_id=len(instances_dict),
                                         tracking=[],
                                         category=next_category,
@@ -118,6 +121,11 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
                 new_instance.boxes_3d.append(box)
                 # new_instance.clouds.append(get_instance_ptcloud(points, box))
                 instances_dict[len(instances_dict)] = new_instance
+
+        data["frames"][next_i]["annos"]["instance_ids"] = next_instance_ids
+
         i += 1
 
-    return instances_dict
+    output_filename = get_tracking_file_name(dataset_root, seq_id)
+    with open(output_filename, "w") as output_file:
+        json.dump(data, output_file, indent=4)

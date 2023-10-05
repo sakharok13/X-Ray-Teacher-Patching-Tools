@@ -348,3 +348,18 @@ class ONCE(object):
             points_list.append(points)
             return points_list
         return points_list
+
+    def is_inside_3d_box(point, box):
+        cx, cy, cz, l, w, h, theta = box
+        theta_deg = np.degrees(theta)
+        # rotation transf matrix (rotate to minus! theta)
+        R = np.array([[np.cos(-theta), -np.sin(-theta), 0],
+                      [np.sin(-theta), np.cos(-theta), 0],
+                      [0, 0, 1]])
+        # to box coords
+        translated_point = np.array([point[0], point[1], point[2]]) - np.array([cx, cy, cz])
+
+        rotated_point = np.dot(R, translated_point)
+        ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <= rotated_point[1] <= w / 2) and (
+                    -h / 2 <= rotated_point[2] <= h / 2)
+        return ifinside, rotated_point

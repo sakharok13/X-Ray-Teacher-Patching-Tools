@@ -40,6 +40,9 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
                 next_i = j
                 break
 
+        if next_i == None:
+            break
+
         frame_id = frame_ids[i]
         print("processing frame " + str(i) + " of " +
               str(len(frame_ids)) + " id: " + str(frame_id))
@@ -128,4 +131,4 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
 
     output_filename = get_tracking_file_name(dataset_root, seq_id)
     with open(output_filename, "w") as output_file:
-        json.dump(data, output_file, indent=4)
+        json.dump(data, output_file) #, indent=4)

@@ -363,3 +363,11 @@ class ONCE(object):
         ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <= rotated_point[1] <= w / 2) and (
                     -h / 2 <= rotated_point[2] <= h / 2)
         return ifinside, rotated_point
+
+
+def get_frame_point_cloud():
+    return None
+
+
+def get_instance_point_cloud():
+    return None

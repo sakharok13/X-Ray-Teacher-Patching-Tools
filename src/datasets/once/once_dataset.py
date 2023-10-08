@@ -17,7 +17,7 @@ class OnceDataset(Dataset):
                  dataroot='./temp/ONCE'):
         self.__once = ONCE(dataroot)
         self.__once._collect_basic_infos()
-
+        self.__dataroot = dataroot
         self.__scenes = os.listdir('./temp/ONCE/data')
         self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}
 
@@ -28,12 +28,12 @@ class OnceDataset(Dataset):
     def get_scene_iterator(self, scene_id: str) -> Dataset.SceneIterator:
         assert scene_id in self.__scenes_lookup
 
-        return OnceSceneIterator(scene=self.__scenes_lookup[scene_id],
-                                     once=self.__once)
+        return OnceSceneIterator(scene=scene_id,
+                                 once=self.__once)
 
     def load_frame_patcher(self, frame_id: str) -> FramePatcher:
         return OnceFramePatcher.load(frame_id=frame_id,
-                                         once=self.__once)
+                                     once=self.__once)
 
     def serialise_frame_point_clouds(self,
                                      scene_id: str,
@@ -66,5 +66,7 @@ class OnceDataset(Dataset):
                                         once=self.__once)
 
     def __get_patched_folder_and_filename(self, scene_id: str, frame_id: str):
+        folder_name = f"{scene_id}_patched"
+        file_name = f"{frame_id}.bin"
 
-        return None
+        return os.path.join(self.__dataroot, 'data', folder_name, 'lidar_roof', file_name)

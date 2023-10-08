@@ -357,11 +357,12 @@ class ONCE(object):
                       [np.sin(-theta), np.cos(-theta), 0],
                       [0, 0, 1]])
         # to box coords
-        translated_point = np.array([point[0], point[1], point[2]]) - np.array([cx, cy, cz])
+        translated_point = np.array(
+            [point[0], point[1], point[2]]) - np.array([cx, cy, cz])
 
         rotated_point = np.dot(R, translated_point)
-        ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <= rotated_point[1] <= w / 2) and (
-                    -h / 2 <= rotated_point[2] <= h / 2)
+        ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <=
+                                                              rotated_point[1] <= w / 2) and (-h / 2 <= rotated_point[2] <= h / 2)
         return ifinside, rotated_point
 
 
@@ -371,3 +372,12 @@ def get_frame_point_cloud():
 
 def get_instance_point_cloud():
     return None
+
+
+def get_annotations_file_name(dataset_root, seq_id):
+    return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '.json'
+
+
+def get_annotations_tracked_file_name(dataset_root, seq_id):
+    return dataset_root + '/data/' + \
+        str(seq_id) + '/' + str(seq_id) + '_tracked.json'

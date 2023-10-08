@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import json
+from once_utils import get_annotations_file_name
 
 class Instance:
     def __init__(self, instance_id, tracking, category, scene_id, frame_ids, boxes_3d):
@@ -10,9 +11,6 @@ class Instance:
         self.scene_id = scene_id
         self.frame_ids = []
         self.boxes_3d = []
-
-def get_annotations_file_name(dataset_root, seq_id):
-    return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '.json'
 
 def get_tracking_file_name(dataset_root, seq_id):
     return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '_tracked.json'

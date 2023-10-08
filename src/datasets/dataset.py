@@ -24,22 +24,25 @@ class Dataset(ABC):
         ...
 
     @abstractmethod
-    def load_frame_patcher(self, frame_id: str) -> FramePatcher:
+    def load_frame_patcher(self, scene_id: str, frame_id: str) -> FramePatcher:
         ...
 
     @abstractmethod
     def serialise_frame_point_clouds(self,
+                                     scene_id: str,
                                      frame_id: str,
                                      frame_point_cloud: np.ndarray) -> Optional[str]:
         ...
 
     @abstractmethod
     def get_frame_point_cloud(self,
+                              scene_id: str,
                               frame_id: str) -> np.ndarray:
         ...
 
     @abstractmethod
     def get_instance_point_cloud(self,
+                                 scene_id: str,
                                  frame_id: str,
                                  instance_id: str,
                                  frame_point_cloud: np.ndarray) -> np.ndarray:

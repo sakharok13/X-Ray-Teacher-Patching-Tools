@@ -4,14 +4,28 @@ from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 from src.datasets.dataset import Dataset
 from src.utils.dataset_helper import group_instances_across_frames
 from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
+from src.datasets.waymo.waymo_dataset import WaymoDataset
 
 from src.utils.visualisation_helper import visualise_points_cloud
 
 
-def main():
-    dataset: Dataset = NuscenesDataset(version='v1.0-mini', dataroot='./temp/nuscenes')
+def __create_dataset(dataset: str) -> Dataset:
+    if dataset == 'nuscenes':
+        return NuscenesDataset(version='v1.0-mini', dataroot='./temp/nuscenes')
+    elif dataset == 'waymo':
+        return WaymoDataset(dataset_root='./temp/open-waymo')
+    else:
+        raise Exception(f"Unknown dataset {dataset}")
 
-    grouped_instances = group_instances_across_frames(scene_id='0', dataset=dataset)
+
+def main():
+    dataset = __create_dataset('waymo')
+
+    print('Scenes:', dataset.scenes)
+
+    scene_id = 'training_segment-10023947602400723454_1120_000_1140_000_with_camera_labels'
+
+    grouped_instances = group_instances_across_frames(scene_id=scene_id, dataset=dataset)
 
     instances_per_frames_lookup = dict()
     for instance, frames in grouped_instances.items():
@@ -27,7 +41,7 @@ def main():
                                                     dataset=dataset)
     default_accumulation_strategy = DefaultAccumulatorStrategy()
 
-    frame_id = '9813c23a5f1448b09bb7910fea9baf20'
+    frame_id = 'training_segment-10023947602400723454_1120_000_1140_000_with_camera_labels_078'
     instance_ids = set()
 
     for instance_id, frames in grouped_instances.items():
@@ -37,15 +51,16 @@ def main():
 
     print('Detected', len(instance_ids), 'objects in the frame')
 
-    frame_patcher = dataset.load_frame_patcher(frame_id=frame_id)
+    frame_patcher = dataset.load_frame_patcher(scene_id=scene_id, frame_id=frame_id)
     # Original unmodified frame.
     visualise_points_cloud(frame_patcher.frame.T)
 
-    for instance_id in instance_ids:
-        accumulated_point_cloud = point_cloud_accumulator.merge(instance_id=instance_id,
+    for i, instance_id in enumerate(instance_ids):
+        accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
+                                                                instance_id=instance_id,
                                                                 accumulation_strategy=default_accumulation_strategy)
 
-        print('frames for instance', instance_id, 'are', grouped_instances[instance_id])
+        print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
         # visualise_points_cloud(accumulated_point_cloud.T)
@@ -53,10 +68,13 @@ def main():
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)
 
+        print('Progress', f"{(i/len(instance_ids) * 100):.1f}%")
+
     # Patched scene.
     visualise_points_cloud(frame_patcher.frame.T)
 
-    saved_path = dataset.serialise_frame_point_clouds(frame_id=frame_patcher.frame_id,
+    saved_path = dataset.serialise_frame_point_clouds(scene_id=scene_id,
+                                                      frame_id=frame_patcher.frame_id,
                                                       frame_point_cloud=frame_patcher.frame)
     print('File saved to:', saved_path)
 

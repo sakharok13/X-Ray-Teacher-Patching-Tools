@@ -14,6 +14,7 @@ from src.datasets.once.once_utils import ONCE, get_frame_point_cloud, get_instan
 
 class OnceDataset(Dataset):
     def __init__(self,
+                 type='train',
                  dataroot='./temp/ONCE'):
         self.__once = ONCE(dataroot)
         self.__once._collect_basic_infos()

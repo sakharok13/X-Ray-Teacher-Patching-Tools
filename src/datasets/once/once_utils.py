@@ -55,10 +55,14 @@ class ONCE(object):
         'right_back',
         'back']
 
-    def __init__(self, dataset_root):
+    def __init__(self, dataset_root, tracked=False):
         self.dataset_root = dataset_root
         self.data_root = osp.join(self.dataset_root, 'data')
-        self._collect_basic_infos()
+        self.tracked = tracked
+        if not self.tracked:
+            self._collect_basic_infos()
+        else:
+            self._collect_basic_infos_tracked()
 
     @property
     @split_info_loader_helper
@@ -149,6 +153,52 @@ class ONCE(object):
                             info_dict[seq][frame_anno['frame_id']
                                            ]['annos'] = frame_anno['annos']
                     info_dict[seq]['frame_list'] = sorted(frame_list)
+
+
+    def _collect_basic_infos_tracked(self):
+        self.train_info_tracked = defaultdict(dict)
+        self.val_info_tracked = defaultdict(dict)
+        self.test_info_tracked = defaultdict(dict)
+        self.raw_small_info_tracked = defaultdict(dict)
+        self.raw_medium_info_tracked = defaultdict(dict)
+        self.raw_large_info_tracked = defaultdict(dict)
+
+        for attr in [
+            'train',
+            'val',
+            'test',
+            'raw_small',
+            'raw_medium',
+                'raw_large']:
+            if getattr(self, '{}_split_list'.format(attr)) is not None:
+                split_list = getattr(self, '{}_split_list'.format(attr))
+                info_dict = getattr(self, '{}_info_tracked'.format(attr))
+                for seq in split_list:
+                    anno_file_path = osp.join(
+                        self.data_root, seq, '{}_tracked.json'.format(seq))
+                    if not osp.isfile(anno_file_path):
+                        print("no annotation file for sequence {}".format(seq))
+                        raise FileNotFoundError
+                    anno_file = json.load(open(anno_file_path, 'r'))
+                    frame_list = list()
+                    for frame_anno in anno_file['frames']:
+                        frame_list.append(str(frame_anno['frame_id']))
+                        info_dict[seq][frame_anno['frame_id']] = {
+                            'pose': frame_anno['pose'],
+                        }
+                        info_dict[seq][frame_anno['frame_id']
+                                       ]['calib'] = dict()
+                        for cam_name in self.__class__.camera_names:
+                            info_dict[seq][frame_anno['frame_id']]['calib'][cam_name] = {
+                                'cam_to_velo': np.array(anno_file['calib'][cam_name]['cam_to_velo']),
+                                'cam_intrinsic': np.array(anno_file['calib'][cam_name]['cam_intrinsic']),
+                                'distortion': np.array(anno_file['calib'][cam_name]['distortion'])
+                            }
+                        if 'annos' in frame_anno.keys():
+                            info_dict[seq][frame_anno['frame_id']
+                                           ]['annos'] = frame_anno['annos']
+                    info_dict[seq]['frame_list'] = sorted(frame_list)
+
 
     def get_frame_anno(self, seq_id, frame_id):
         split_name = self._find_split_name(seq_id)
@@ -366,8 +416,8 @@ class ONCE(object):
         return ifinside, rotated_point
 
 
-def get_frame_point_cloud():
-    return None
+def get_frame_point_cloud(seq_id, frame_id, once):
+    return once.load_point_cloud(seq_id, frame_id)
 
 
 def get_instance_point_cloud():

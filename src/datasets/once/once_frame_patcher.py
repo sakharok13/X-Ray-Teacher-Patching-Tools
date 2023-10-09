@@ -1,0 +1,100 @@
+from __future__ import annotations
+
+import numpy as np
+
+from nuscenes.utils.geometry_utils import points_in_box
+
+from src.datasets.once.once_utils import ONCE
+from src.datasets.frame_patcher import FramePatcher
+from src.datasets.once.once_utils import get_frame_point_cloud, reapply_frame_transformation
+
+
+class OnceFramePatcher(FramePatcher):
+    """Patches Once frames with new point clouds.
+    """
+
+    def __init__(self,
+                 seq_id: str,
+                 frame_id: str,
+                 frame_point_cloud: np.ndarray,
+                 once: ONCE):
+        self.__seq_id = seq_id
+        self.__frame_id = frame_id
+        self.__frame_point_cloud = frame_point_cloud
+        self.__once = once
+
+    @classmethod
+    def load(cls,
+             seq_id: str,
+             frame_id: str,
+             once: ONCE) -> OnceFramePatcher:
+        """Creates OnceFramePatcher instance.
+        :param seq_id: str
+            ID of a scene.
+        :param frame_id: str
+            ID of a frame.
+        :param once: 'ONCE'
+            ONCE dataset class.
+        :return: 'OnceFramePatcher'
+            A constructed instance.
+        """
+        lidar_point_cloud = get_frame_point_cloud(seq_id=seq_id,
+                                                  frame_id=frame_id,
+                                                  once=once)
+        return OnceFramePatcher(seq_id=seq_id,
+                                frame_id=frame_id,
+                                frame_point_cloud=lidar_point_cloud,
+                                once=once)
+
+    @classmethod
+    def serialise(cls,
+                  path: str,
+                  point_cloud: np.ndarray):
+        """Serialises the given frame into a .bin file.
+        """
+
+        if not path.endswith('.bin'):
+            raise Exception(f"Supports only bin files, got: {path}")
+
+        points_count = point_cloud.shape[1]
+
+        np.append(
+            point_cloud,
+            np.zeros(
+                shape=(
+                    1,
+                    points_count)),
+            axis=0).T.astype(
+                dtype=np.float32).tofile(path)
+
+    @property
+    def frame_id(self) -> str:
+        return self.__frame_id
+
+    @property
+    def frame(self) -> np.ndarray:
+        return self.__frame_point_cloud
+
+    def patch_instance(self,
+                       instance_id: str,
+                       point_cloud: np.ndarray):
+        annotations = self.__once.get_frame_anno(self.__seq_id, self.__frame_id)
+        ids = annotations['instance_ids']
+
+        instance_index = np.where(ids == instance_id)
+        box = annotations['boxes_3d'][instance_index]
+
+        points = self.__frame_point_cloud[0:3, :]
+        mask = points_in_box(box=box,
+                             points=points)
+
+        # Remove masked elements in frame.
+        self.__frame_point_cloud = self.__frame_point_cloud[:, np.where(~mask)[0]]
+
+        # Put the object back into the scene.
+        point_cloud = reapply_frame_transformation(point_cloud=point_cloud,
+                                                   instance_id=instance_id,
+                                                   frame_descriptor=self.__frame_descriptor)
+
+        # Append instance patch: append should happen along
+        self.__frame_point_cloud = np.concatenate((self.__frame_point_cloud, point_cloud), axis=1)

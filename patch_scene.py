@@ -15,6 +15,7 @@ from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 
 from src.datasets.dataset import Dataset
 from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
+from src.datasets.once.once_dataset import OnceDataset
 from src.datasets.waymo.waymo_dataset import WaymoDataset
 from src.utils.dataset_helper import group_instances_across_frames
 from src.utils.logging_utils import create_logger
@@ -154,8 +155,9 @@ accumulator_strategies = {
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='patch scene arguments')
-    parser.add_argument('--dataset', type=str, choices=['nuscenes', 'waymo'], default='nuscenes', help='Dataset.')
+    parser.add_argument('--dataset', type=str, choices=['nuscenes', 'once', 'waymo'], default='nuscenes', help='Dataset.')
     parser.add_argument('--version', type=str, default='v1.0-mini', help='NuScenes version.')
+    parser.add_argument("--type", type=str, choices=['train', 'test', 'val', 'raw_small', 'raw_medium', 'raw_large'], default="train", help="Once dataset type.")
     parser.add_argument('--dataroot', type=str, default='./temp/nuscenes', help='Data root location.')
     parser.add_argument('--strategy', type=str, default='default', help='Accumulation strategy.')
     parser.add_argument('--instances', action='store_true', help='Export instances.')
@@ -174,6 +176,8 @@ def main():
 
     if dataset_type == 'nuscenes':
         dataset = NuscenesDataset(version=args.version, dataroot=args.dataroot)
+    elif dataset_type == 'once':
+        dataset = OnceDataset(type=args.type, dataroot=args.dataroot)
     elif dataset_type == 'waymo':
         dataset = WaymoDataset(dataset_root=args.dataroot)
     else:

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from nuscenes.utils.geometry_utils import points_in_box
-
 from src.datasets.once.once_utils import ONCE
 from src.datasets.frame_patcher import FramePatcher
 from src.datasets.once.once_utils import get_frame_point_cloud, reapply_frame_transformation
+from src.utils.geometry_utils import points_in_box
 
 
 class OnceFramePatcher(FramePatcher):
@@ -17,10 +16,12 @@ class OnceFramePatcher(FramePatcher):
                  seq_id: str,
                  frame_id: str,
                  frame_point_cloud: np.ndarray,
+                 frame_descriptor: dict,
                  once: ONCE):
         self.__seq_id = seq_id
         self.__frame_id = frame_id
         self.__frame_point_cloud = frame_point_cloud
+        self.__frame_descriptor = frame_descriptor
         self.__once = once
 
     @classmethod
@@ -78,18 +79,26 @@ class OnceFramePatcher(FramePatcher):
     def patch_instance(self,
                        instance_id: str,
                        point_cloud: np.ndarray):
-        annotations = self.__once.get_frame_anno(self.__seq_id, self.__frame_id)
+        annotations = self.__once.get_frame_anno(
+            self.__seq_id, self.__frame_id)
         ids = annotations['instance_ids']
 
         instance_index = np.where(ids == instance_id)
+        # box - cx, cy, cz, l, w, h, θ
         box = annotations['boxes_3d'][instance_index]
+        center_xyz = box[0:3]
+        dimensions_lwh = np.array([box[3], box[4], box[5]])
+        heading_angle = box[6]
 
         points = self.__frame_point_cloud[0:3, :]
-        mask = points_in_box(box=box,
+        mask = points_in_box(center_xyz=center_xyz,
+                             dimensions_lwh=dimensions_lwh,
+                             heading_angle=heading_angle,
                              points=points)
 
         # Remove masked elements in frame.
-        self.__frame_point_cloud = self.__frame_point_cloud[:, np.where(~mask)[0]]
+        self.__frame_point_cloud = self.__frame_point_cloud[:, np.where(~mask)[
+            0]]
 
         # Put the object back into the scene.
         point_cloud = reapply_frame_transformation(point_cloud=point_cloud,
@@ -97,4 +106,5 @@ class OnceFramePatcher(FramePatcher):
                                                    frame_descriptor=self.__frame_descriptor)
 
         # Append instance patch: append should happen along
-        self.__frame_point_cloud = np.concatenate((self.__frame_point_cloud, point_cloud), axis=1)
+        self.__frame_point_cloud = np.concatenate(
+            (self.__frame_point_cloud, point_cloud), axis=1)

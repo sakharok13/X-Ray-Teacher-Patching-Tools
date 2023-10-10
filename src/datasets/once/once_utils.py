@@ -55,14 +55,12 @@ class ONCE(object):
         'right_back',
         'back']
 
-    def __init__(self, dataset_root, tracked=False):
+    def __init__(self, dataset_root, typeds):
         self.dataset_root = dataset_root
-        self.data_root = osp.join(self.dataset_root, 'data')
-        self.tracked = tracked
-        if not self.tracked:
-            self._collect_basic_infos()
-        else:
-            self._collect_basic_infos_tracked()
+        self.data_folder = osp.join(self.dataset_root, 'data')
+        # self.tracked = tracked
+        self._collect_basic_infos(typeds)
+
 
     @property
     @split_info_loader_helper
@@ -110,7 +108,7 @@ class ONCE(object):
         print("sequence id {} corresponding to no split".format(seq_id))
         raise NotImplementedError
 
-    def _collect_basic_infos(self):
+    def _collect_basic_infos(self, typeds):
         self.train_info = defaultdict(dict)
         self.val_info = defaultdict(dict)
         self.test_info = defaultdict(dict)
@@ -118,19 +116,15 @@ class ONCE(object):
         self.raw_medium_info = defaultdict(dict)
         self.raw_large_info = defaultdict(dict)
 
-        for attr in [
-            'train',
-            'val',
-            'test',
-            'raw_small',
-            'raw_medium',
-                'raw_large']:
+        attr_list = [typeds]
+
+        for attr in attr_list:
             if getattr(self, '{}_split_list'.format(attr)) is not None:
                 split_list = getattr(self, '{}_split_list'.format(attr))
                 info_dict = getattr(self, '{}_info'.format(attr))
                 for seq in split_list:
                     anno_file_path = osp.join(
-                        self.data_root, seq, '{}.json'.format(seq))
+                        self.data_folder, seq, '{}.json'.format(seq))
                     if not osp.isfile(anno_file_path):
                         print("no annotation file for sequence {}".format(seq))
                         raise FileNotFoundError
@@ -175,7 +169,7 @@ class ONCE(object):
                 info_dict = getattr(self, '{}_info_tracked'.format(attr))
                 for seq in split_list:
                     anno_file_path = osp.join(
-                        self.data_root, seq, '{}_tracked.json'.format(seq))
+                        self.data_folder, seq, '{}_tracked.json'.format(seq))
                     if not osp.isfile(anno_file_path):
                         print("no annotation file for sequence {}".format(seq))
                         raise FileNotFoundError
@@ -210,7 +204,7 @@ class ONCE(object):
 
     def load_point_cloud(self, seq_id, frame_id):
         bin_path = osp.join(
-            self.data_root,
+            self.data_folder,
             seq_id,
             'lidar_roof',
             '{}.bin'.format(frame_id))
@@ -219,7 +213,7 @@ class ONCE(object):
 
     def load_image(self, seq_id, frame_id, cam_name):
         cam_path = osp.join(
-            self.data_root,
+            self.data_folder,
             seq_id,
             cam_name,
             '{}.jpg'.format(frame_id))
@@ -428,6 +422,11 @@ def get_annotations_file_name(dataset_root, seq_id):
     return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '.json'
 
 
-def get_annotations_tracked_file_name(dataset_root, seq_id):
-    return dataset_root + '/data/' + \
-        str(seq_id) + '/' + str(seq_id) + '_tracked.json'
+def get_annotations_tracked_file_name(datafolder_root, seq_id):
+    return datafolder_root + '/' + str(seq_id) + '/' + str(seq_id) + '_tracked.json'
+
+def reapply_frame_transformation(point_cloud, instance_id, frame_descriptor):
+    annotations = frame_descriptor['annotations']
+    ids = annotations['ids']
+
+    instance_index = np.where(ids == instance_id)

@@ -14,10 +14,10 @@ from src.datasets.once.once_utils import ONCE, get_frame_point_cloud, get_instan
 
 class OnceDataset(Dataset):
     def __init__(self,
-                 type='train',
+                 typeds='train',
                  dataroot='./temp/ONCE'):
-        self.__once = ONCE(dataroot)
-        self.__once._collect_basic_infos()
+        self.__once = ONCE(dataroot, typeds)
+        self.__once._collect_basic_infos(typeds)
         self.__dataroot = dataroot
         self.__scenes = os.listdir('./temp/ONCE/data')
         self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}
@@ -28,11 +28,13 @@ class OnceDataset(Dataset):
 
     def get_scene_iterator(self, scene_id: str) -> Dataset.SceneIterator:
         assert scene_id in self.__scenes_lookup
-
-        return OnceSceneIterator(scene=scene_id,
+        # scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
+        return OnceSceneIterator(scene=self.__scenes_lookup[scene_id],
                                  once=self.__once)
 
-    def load_frame_patcher(self, frame_id: str) -> FramePatcher:
+    def load_frame_patcher(self, frame_id: str,
+                                 scene_id: str) -> FramePatcher:
+        # scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
         return OnceFramePatcher.load(frame_id=frame_id,
                                      once=self.__once)
 

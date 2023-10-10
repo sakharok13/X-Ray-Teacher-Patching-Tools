@@ -17,9 +17,9 @@ class OnceSceneIterator(Dataset.SceneIterator):
                  once: ONCE):
         self.__scene = scene
         self.__once = once
+        self.__frame_ids = self.__get_frame_ids()
         self.__current_sample = self.__get_first_frame()
         self.__current_id = 0
-        self.__frame_ids = self.__get_frame_ids()
 
     def __iter__(self) -> OnceSceneIterator:
         """Reset iterator and returns itself.
@@ -38,11 +38,11 @@ class OnceSceneIterator(Dataset.SceneIterator):
             raise StopIteration()
 
         frame_id = self.__current_sample
-        anno_json = get_annotations_tracked_file_name(self.__once.data_root, self.__scene)
+        anno_json = get_annotations_tracked_file_name(self.__once.data_folder, self.__scene)
         with open(anno_json, 'r') as json_file:
             data = json.load(json_file)
 
-        instance_ids = data["frames"][frame_id]["annos"]["instance_ids"]
+        instance_ids = data['frames'][frame_id]['annos']['instance_ids']
 
         self.__current_id += 1
         self.__current_sample = self.__frame_ids[self.__current_id]
@@ -64,12 +64,11 @@ class OnceSceneIterator(Dataset.SceneIterator):
         :return: list[str]
             List of frame IDs as strings.
         """
-        dataroot = self.__once.data_root
         frame_ids = []
-        scene_folder_path = os.path.join(dataroot, 'data', self.__scene)
+        frames_folder_path = os.path.join(self.__once.data_folder, self.__scene, 'lidar_roof')
 
-        for folder_name in os.listdir(scene_folder_path):
-            match = re.search(r'\d+', folder_name)
+        for file_name in os.listdir(frames_folder_path):
+            match = re.search(r'\d+', file_name)
             if match:
                 numeric_part = match.group()
                 frame_ids.append(str(int(numeric_part)))

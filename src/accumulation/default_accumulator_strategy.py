@@ -17,4 +17,7 @@ class DefaultAccumulatorStrategy(AccumulationStrategy):
         if next_point_cloud.size == 0:
             return initial_point_cloud
         else:
-            return np.concatenate((initial_point_cloud, next_point_cloud), axis=1)
+            if initial_point_cloud.size == 0:
+                return next_point_cloud
+            else:
+                return np.concatenate((initial_point_cloud, next_point_cloud), axis=1)

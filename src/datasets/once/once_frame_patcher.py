@@ -103,7 +103,8 @@ class OnceFramePatcher(FramePatcher):
         # Put the object back into the scene.
         point_cloud = reapply_frame_transformation(point_cloud=point_cloud,
                                                    instance_id=instance_id,
-                                                   frame_descriptor=self.__frame_descriptor)
+                                                   frame_descriptor=self.__frame_descriptor,
+                                                   once=self.__once)
 
         # Append instance patch: append should happen along
         self.__frame_point_cloud = np.concatenate(

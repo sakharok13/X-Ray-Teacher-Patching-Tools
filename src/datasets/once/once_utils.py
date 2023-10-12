@@ -498,8 +498,15 @@ def get_annotations_tracked_file_name(datafolder_root, seq_id):
         str(seq_id) + '/' + str(seq_id) + '_tracked.json'
 
 
-def reapply_frame_transformation(point_cloud, instance_id, frame_descriptor):
+def reapply_frame_transformation(point_cloud, instance_id, frame_descriptor, once):
     annotations = frame_descriptor['annotations']
     ids = annotations['ids']
 
     instance_index = np.where(ids == instance_id)
+
+    box = annotations['boxes_3d'][instance_id]
+    moved_back_points = []
+    for point in point_cloud:
+        moved_back_points.append(once.move_back_to_frame_coordinates(point, box))
+
+    return np.array(moved_back_points)

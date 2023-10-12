@@ -37,15 +37,28 @@ class OnceSceneIterator(Dataset.SceneIterator):
         if self.__current_sample is None or self.__current_id >= len(self.__frame_ids):
             raise StopIteration()
 
+        frame_info = {}
+        instance_ids = []
+
         frame_id = self.__current_sample
         anno_json = get_annotations_tracked_file_name(self.__once.data_folder, self.__scene)
         with open(anno_json, 'r') as json_file:
             data = json.load(json_file)
 
-        instance_ids = data['frames'][frame_id]['annos']['instance_ids']
-
-        self.__current_id += 1
-        self.__current_sample = self.__frame_ids[self.__current_id]
+        while self.__current_id < len(self.__frame_ids):
+            print("Iterating frame " + str(self.__current_id + 1) + " of " + str(len(self.__frame_ids)))
+            if 'frames' in data and frame_id in {frame.get('frame_id') for frame in data['frames']}:
+                frame_info = next(frame for frame in data['frames'] if frame.get('frame_id') == frame_id)
+                if 'annos' in frame_info:
+                    instance_ids = frame_info['annos']['instance_ids']
+                    self.__current_id += 1
+                    if self.__current_id < len(self.__frame_ids):
+                        self.__current_sample = self.__frame_ids[self.__current_id]
+                    break  # found annotations
+            self.__current_id += 1
+            if self.__current_id < len(self.__frame_ids):
+                self.__current_sample = self.__frame_ids[self.__current_id]
+                frame_id = self.__current_sample
 
         return frame_id, FrameDescriptor(
             frame_id=frame_id, instances_ids=instance_ids)

@@ -61,7 +61,6 @@ class ONCE(object):
         # self.tracked = tracked
         self._collect_basic_infos(typeds)
 
-
     @property
     @split_info_loader_helper
     def train_split_list(self):
@@ -121,6 +120,7 @@ class ONCE(object):
         for attr in attr_list:
             if getattr(self, '{}_split_list'.format(attr)) is not None:
                 split_list = getattr(self, '{}_split_list'.format(attr))
+                split_list = {'000092'}
                 info_dict = getattr(self, '{}_info'.format(attr))
                 for seq in split_list:
                     anno_file_path = osp.join(
@@ -147,7 +147,6 @@ class ONCE(object):
                             info_dict[seq][frame_anno['frame_id']
                                            ]['annos'] = frame_anno['annos']
                     info_dict[seq]['frame_list'] = sorted(frame_list)
-
 
     def _collect_basic_infos_tracked(self):
         self.train_info_tracked = defaultdict(dict)
@@ -192,7 +191,6 @@ class ONCE(object):
                             info_dict[seq][frame_anno['frame_id']
                                            ]['annos'] = frame_anno['annos']
                     info_dict[seq]['frame_list'] = sorted(frame_list)
-
 
     def get_frame_anno(self, seq_id, frame_id):
         split_name = self._find_split_name(seq_id)
@@ -393,14 +391,14 @@ class ONCE(object):
             return points_list
         return points_list
 
-    def is_inside_3d_box(point, box):
+    def is_inside_3d_box(self, point, box):
         cx, cy, cz, l, w, h, theta = box
         theta_deg = np.degrees(theta)
-        # rotation transf matrix (rotate to minus! theta)
+        # rotation transform matrix (rotate to minus! theta)
         R = np.array([[np.cos(-theta), -np.sin(-theta), 0],
                       [np.sin(-theta), np.cos(-theta), 0],
                       [0, 0, 1]])
-        # to box coords
+        # to box coordinates
         translated_point = np.array(
             [point[0], point[1], point[2]]) - np.array([cx, cy, cz])
 
@@ -409,21 +407,96 @@ class ONCE(object):
                                                               rotated_point[1] <= w / 2) and (-h / 2 <= rotated_point[2] <= h / 2)
         return ifinside, rotated_point
 
+    def move_back_to_frame_coordinates(self, point, box):
+        cx, cy, cz, l, w, h, theta = box
+        theta_deg = np.degrees(theta)
+        # rotation transform matrix (rotate to plus! theta)
+        R = np.array([[np.cos(theta), -np.sin(theta), 0],
+                      [np.sin(theta), np.cos(theta), 0],
+                      [0, 0, 1]])
+        # to frame coordinates
+        translated_point = np.array(
+            [point[0], point[1], point[2]]) + np.array([cx, cy, cz])
+
+        rotated_point = np.dot(R, translated_point)
+
+        return rotated_point
+
+
+def get_frame_instance_ids(scene_id, frame_id, once):
+    instance_ids = []
+
+    anno_json = get_annotations_tracked_file_name(once.data_folder, scene_id)
+    with open(anno_json, 'r') as json_file:
+        data = json.load(json_file)
+
+        if 'frames' in data and frame_id in {
+                frame.get('frame_id') for frame in data['frames']}:
+            frame_info = next(
+                frame for frame in data['frames'] if frame.get('frame_id') == frame_id)
+            if 'annos' in frame_info:
+                instance_ids = frame_info['annos']['instance_ids']
+
+    return instance_ids
+
 
 def get_frame_point_cloud(seq_id, frame_id, once):
     return once.load_point_cloud(seq_id, frame_id)
 
 
-def get_instance_point_cloud():
-    return None
+def get_instance_point_cloud(
+        seq_id,
+        frame_id,
+        instance_id,
+        frame_point_cloud,
+        once):
+    """Returns point cloud for the given instance in the given frame.
+
+        The returned point cloud has reset rotation and translation.
+
+        :param seq_id: str
+            ID of a scene (sequence).
+        :param frame_id: str
+            ID of a frame (aka sample).
+        :param instance_id: str
+            ID of an instance.
+        :param frame_point_cloud:
+            np.ndarray point cloud.
+        :param once:
+            Once dataset instance.
+        :return: np.ndarray[float]
+            Returns point cloud for the given object.
+        """
+    instance_ids = get_frame_instance_ids(seq_id, frame_id, once)
+    annotations = once.get_frame_anno(seq_id, frame_id)
+
+    points_reset_to_zero = []
+
+    if instance_id in instance_ids:
+        box_index = instance_ids.index(instance_id)
+        box = annotations['boxes_3d'][box_index]
+
+        for point in frame_point_cloud:
+            is_inside, zeroed_pt = once.is_inside_3d_box(point, box)
+            if is_inside:
+                points_reset_to_zero.append(zeroed_pt)
+
+        reset_cloud = np.array(points_reset_to_zero)
+
+        return reset_cloud.T
+    else:
+        raise ValueError(
+            f"Instance ID {instance_id} is not present in the instance_ids list.")
 
 
-def get_annotations_file_name(dataset_root, seq_id):
-    return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '.json'
+def get_annotations_file_name(datafolder_root, seq_id):
+    return datafolder_root + '/' + str(seq_id) + '/' + str(seq_id) + '.json'
 
 
 def get_annotations_tracked_file_name(datafolder_root, seq_id):
-    return datafolder_root + '/' + str(seq_id) + '/' + str(seq_id) + '_tracked.json'
+    return datafolder_root + '/' + \
+        str(seq_id) + '/' + str(seq_id) + '_tracked.json'
+
 
 def reapply_frame_transformation(point_cloud, instance_id, frame_descriptor):
     annotations = frame_descriptor['annotations']

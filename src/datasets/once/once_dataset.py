@@ -42,7 +42,7 @@ class OnceDataset(Dataset):
                                      scene_id: str,
                                      frame_id: str,
                                      frame_point_cloud: np.ndarray) -> Optional[str]:
-        path_to_save = self.__get_patched_folder_and_filename(scene_id, frame_id)
+        path_to_save = self.__get_patched_folder_and_filename(self.__scenes_lookup[scene_id], frame_id)
 
         dir_path = os.path.dirname(path_to_save)
 
@@ -55,17 +55,22 @@ class OnceDataset(Dataset):
         return path_to_save
 
     def get_frame_point_cloud(self,
+                              scene_id: str,
                               frame_id: str) -> np.ndarray:
-        return get_frame_point_cloud(frame_id=frame_id,
+
+        return get_frame_point_cloud(seq_id=self.__scenes_lookup[scene_id],
+                                     frame_id=frame_id,
                                      once=self.__once)
 
     def get_instance_point_cloud(self,
+                                 scene_id: str,
                                  frame_id: str,
                                  instance_id: str,
                                  frame_point_cloud: np.ndarray) -> np.ndarray:
-        return get_instance_point_cloud(frame_id=frame_id,
-                                        frame_point_cloud=frame_point_cloud,
+        return get_instance_point_cloud(seq_id=self.__scenes_lookup[scene_id],
+                                        frame_id=frame_id,
                                         instance_id=instance_id,
+                                        frame_point_cloud=frame_point_cloud,
                                         once=self.__once)
 
     def __get_patched_folder_and_filename(self, scene_id: str, frame_id: str):

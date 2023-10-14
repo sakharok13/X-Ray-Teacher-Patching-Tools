@@ -10,7 +10,7 @@ from src.datasets.dataset import Dataset
 from src.datasets.frame_patcher import FramePatcher
 from src.datasets.waymo.waymo_frame_patcher import WaymoFramePatcher
 from src.datasets.waymo.waymo_scene_iterator import WaymoSceneIterator
-from src.datasets.waymo.waymo_utils import find_all_scenes, load_scene_descriptor, get_frame_point_cloud, get_instance_point_cloud
+from src.datasets.waymo.waymo_utils import find_all_scenes, load_scene_descriptor, get_frame_point_cloud, get_instance_point_cloud, get_frame_index
 
 
 class WaymoDataset(Dataset):
@@ -50,7 +50,7 @@ class WaymoDataset(Dataset):
         patched_scene_folder = os.path.join(patched_root_folder, scene_id)
         os.makedirs(patched_scene_folder, exist_ok=True)
 
-        frame_index = frame_descriptor['frame_index']
+        frame_index = get_frame_index(frame_descriptor)
         path_to_save = os.path.join(patched_scene_folder, f"{frame_index:04d}.npy")
 
         WaymoFramePatcher.serialise(path=path_to_save,

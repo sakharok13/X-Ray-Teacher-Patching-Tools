@@ -35,7 +35,7 @@ def count_frames_in_scene(dataset_root: str,
 def get_frame_point_cloud(dataset_root: str,
                           scene_id: str,
                           frame_descriptor: dict) -> np.ndarray:
-    frame_index = frame_descriptor['frame_index']
+    frame_index = get_frame_index(frame_descriptor)
     frame_pcr_file = os.path.join(dataset_root, scene_id, f"{frame_index:04d}.npy")
 
     assert os.path.exists(frame_pcr_file), \
@@ -111,6 +111,21 @@ def reapply_frame_transformation(point_cloud: np.ndarray,
                                                          transformation_matrix=reverse_transformation)
 
     return instance_point_cloud
+
+
+def get_frame_index(frame_descriptor: dict) -> int:
+    # Some of converted waymo formats contain frame_index,
+    # while others use sample_idx inside of point_cloud
+    # to figure out the frame index.
+    point_cloud_descriptor = frame_descriptor['point_cloud']
+    if 'frame_index' in point_cloud_descriptor:
+        frame_index = point_cloud_descriptor['frame_index']
+    elif 'sample_idx' in point_cloud_descriptor:
+        frame_index = point_cloud_descriptor['sample_idx']
+    else:
+        raise Exception(f"Frame descriptor does not have frame_index. Descriptor: {frame_descriptor}")
+
+    return frame_index
 
 
 def __apply_transformation_matrix(point_cloud: np.ndarray,

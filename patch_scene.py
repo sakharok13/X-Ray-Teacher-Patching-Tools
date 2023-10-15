@@ -138,14 +138,14 @@ def main():
     scenes = dataset.scenes
     dataset_size = len(scenes)
 
-    for scene_id in range(args.start_scene_index, dataset_size):
+    for i, scene_id in enumerate(scenes):
         __patch_scene(scene_id=str(scene_id),
                       accumulation_strategy=accumulator_strategy,
                       dataset=dataset,
                       export_instances=args.instances,
                       export_frames=args.frames)
 
-        progress = (scene_id + 1 - args.start_scene_index) / (dataset_size - args.start_scene_index) * 100
+        progress = (i + 1 - args.start_scene_index) / (dataset_size - args.start_scene_index) * 100
         print('Local progress: %.2f' % progress + '%')
 
 

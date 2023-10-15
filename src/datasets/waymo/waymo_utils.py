@@ -11,7 +11,7 @@ def find_all_scenes(dataset_root: str) -> list:
     """Returns list of scene ids.
     """
     metadata_files = list_all_files_with_extension(files=[dataset_root], extension='pkl')
-    return [os.path.basename(file) for file in metadata_files]
+    return [os.path.basename(file).split('.')[0] for file in metadata_files]
 
 
 def load_scene_descriptor(dataset_root: str,

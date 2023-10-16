@@ -35,7 +35,8 @@ class OnceDataset(Dataset):
     def load_frame_patcher(self, frame_id: str,
                                  scene_id: str) -> FramePatcher:
         # scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
-        return OnceFramePatcher.load(frame_id=frame_id,
+        return OnceFramePatcher.load(seq_id=self.__scenes_lookup[scene_id],
+                                     frame_id=frame_id,
                                      once=self.__once)
 
     def serialise_frame_point_clouds(self,

@@ -38,6 +38,12 @@ class NuscenesDataset(Dataset):
         return NuscenesFramePatcher.load(frame_id=frame_id,
                                          nuscenes=self.__nuscenes)
 
+    def can_serialise_frame_point_cloud(self,
+                                        scene_id: str,
+                                        frame_id: str) -> bool:
+        path_to_save = self.__get_lidarseg_patched_folder_and_filename(frame_id)
+        return os.path.exists(path_to_save)
+
     def serialise_frame_point_clouds(self,
                                      scene_id: str,
                                      frame_id: str,

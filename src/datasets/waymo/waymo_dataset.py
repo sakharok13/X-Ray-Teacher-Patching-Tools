@@ -10,7 +10,8 @@ from src.datasets.dataset import Dataset
 from src.datasets.frame_patcher import FramePatcher
 from src.datasets.waymo.waymo_frame_patcher import WaymoFramePatcher
 from src.datasets.waymo.waymo_scene_iterator import WaymoSceneIterator
-from src.datasets.waymo.waymo_utils import find_all_scenes, load_scene_descriptor, get_frame_point_cloud, get_instance_point_cloud, get_frame_index
+from src.datasets.waymo.waymo_utils import find_all_scenes, load_scene_descriptor, get_frame_point_cloud, \
+    get_instance_point_cloud, get_frame_index
 
 
 class WaymoDataset(Dataset):
@@ -37,21 +38,20 @@ class WaymoDataset(Dataset):
                                       frame_id=frame_id,
                                       scene_descriptor=scene_descriptor)
 
+    def can_serialise_frame_point_cloud(self,
+                                        scene_id: str,
+                                        frame_id: str) -> bool:
+        path_to_save = self.__get_patched_frame_path(scene_id=scene_id,
+                                                     frame_id=frame_id)
+
+        return os.path.exists(path_to_save)
+
     def serialise_frame_point_clouds(self,
                                      scene_id: str,
                                      frame_id: str,
                                      frame_point_cloud: np.ndarray) -> Optional[str]:
-        scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
-        frame_descriptor = scene_descriptor[frame_id]
-
-        patched_root_folder = os.path.join(self.__dataset_root, 'patched')
-        os.makedirs(patched_root_folder, exist_ok=True)
-
-        patched_scene_folder = os.path.join(patched_root_folder, scene_id)
-        os.makedirs(patched_scene_folder, exist_ok=True)
-
-        frame_index = get_frame_index(frame_descriptor)
-        path_to_save = os.path.join(patched_scene_folder, f"{frame_index:04d}.npy")
+        path_to_save = self.__get_patched_frame_path(scene_id=scene_id,
+                                                     frame_id=frame_id)
 
         WaymoFramePatcher.serialise(path=path_to_save,
                                     point_cloud=frame_point_cloud)
@@ -83,3 +83,18 @@ class WaymoDataset(Dataset):
                                 scene_id: str) -> dict:
         return load_scene_descriptor(dataset_root=self.__dataset_root,
                                      scene_id=scene_id)
+
+    def __get_patched_frame_path(self,
+                                 scene_id: str,
+                                 frame_id: str):
+        scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
+        frame_descriptor = scene_descriptor[frame_id]
+
+        patched_root_folder = os.path.join(self.__dataset_root, 'patched')
+        os.makedirs(patched_root_folder, exist_ok=True)
+
+        patched_scene_folder = os.path.join(patched_root_folder, scene_id)
+        os.makedirs(patched_scene_folder, exist_ok=True)
+
+        frame_index = get_frame_index(frame_descriptor)
+        return os.path.join(patched_scene_folder, f"{frame_index:04d}.npy")

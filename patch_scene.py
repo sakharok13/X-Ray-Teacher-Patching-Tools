@@ -148,12 +148,15 @@ def __process_dataset(dataset: Dataset,
         batches.append(scenes[batch_start:batch_finish])
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-        executor.map(__process_batch,
-                     batches,
-                     [dataset] * num_workers,
-                     [accumulation_strategy] * num_workers,
-                     [export_instances] * num_workers,
-                     [export_frames] * num_workers)
+        thread_results = executor.map(__process_batch,
+                                      batches,
+                                      [dataset] * num_workers,
+                                      [accumulation_strategy] * num_workers,
+                                      [export_instances] * num_workers,
+                                      [export_frames] * num_workers)
+
+        for result in thread_results:
+            print(result)
 
 
 accumulator_strategies = {

@@ -3,7 +3,10 @@ import datetime
 import os
 import numpy as np
 import open3d as o3d
+import threading
 import concurrent.futures
+
+from tqdm import tqdm
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
@@ -14,7 +17,10 @@ from src.datasets.dataset import Dataset
 from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
 from src.datasets.waymo.waymo_dataset import WaymoDataset
 from src.utils.dataset_helper import group_instances_across_frames
+from src.utils.logging_utils import create_logger
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
+
+logging = create_logger()
 
 
 def __patch_scene(scene_id: str,
@@ -43,7 +49,7 @@ def __patch_scene(scene_id: str,
         os.makedirs(output_folder_frame)
 
     for instance in grouped_instances.keys():
-        print(f"Merging {instance}")
+        logging.info(f"[Scene {scene_id}] Merging {instance}")
 
         assert instance not in instance_accumulated_clouds_lookup
 
@@ -61,14 +67,16 @@ def __patch_scene(scene_id: str,
         instance_accumulated_clouds_lookup[instance] = accumulated_point_cloud
 
         current_instance_index += 1
-        print(f"Processed {int((current_instance_index / overall_instances_to_process_count) * 100)}%")
+        logging.info(
+            f"[Scene {scene_id}] Merged {int((current_instance_index / overall_instances_to_process_count) * 100)}% "
+            f"of instances.")
 
     frames_to_instances_lookup: dict = dict()
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
             if not dataset.can_serialise_frame_point_cloud(scene_id=scene_id,
                                                            frame_id=frame_id):
-                print(f"Skipping {frame_id}...")
+                logging.warning(f"[Scene {scene_id}] Skipping frame {frame_id}...")
                 continue
 
             if frame_id not in frames_to_instances_lookup:
@@ -77,8 +85,10 @@ def __patch_scene(scene_id: str,
 
     current_frame_index = 0
     overall_frames_to_patch_count = len(frames_to_instances_lookup)
+    logging.info(f"[Scene {scene_id}] Found {overall_frames_to_patch_count} frames to patch.")
+
     for frame_id, instances in frames_to_instances_lookup.items():
-        print(f"Patching {frame_id}")
+        logging.info(f"[Scene {scene_id}] Patching frame {frame_id}...")
 
         patcher = dataset.load_frame_patcher(scene_id=scene_id,
                                              frame_id=frame_id)
@@ -101,9 +111,10 @@ def __patch_scene(scene_id: str,
         current_frame_index += 1
 
         if saved_path is not None:
-            print(f"{int((current_frame_index / overall_frames_to_patch_count) * 100)}%, saved to {saved_path}")
+            logging.info(f"[Scene {scene_id}] {int((current_frame_index / overall_frames_to_patch_count) * 100)}%, "
+                         f"saved to {saved_path}")
         else:
-            print(f"There was an error saving the point cloud")
+            logging.error(f"[Scene {scene_id}] There was an error saving the point cloud for frame {frame_id}")
 
     # Return OK status when finished processing.
     return True
@@ -114,7 +125,7 @@ def __process_batch(scenes: list,
                     accumulation_strategy: AccumulationStrategy,
                     export_instances: bool,
                     export_frames: bool):
-    for scene_id in scenes:
+    for scene_id in tqdm(scenes, desc=f"Worker #{threading.current_thread().ident}"):
         __patch_scene(scene_id=str(scene_id),
                       dataset=dataset,
                       accumulation_strategy=accumulation_strategy,
@@ -129,6 +140,9 @@ def __process_dataset(dataset: Dataset,
                       num_workers: int):
     assert f"num_workers should be positive {num_workers}", \
         num_workers > 0
+
+    print(f"Processing dataset from: {dataset.dataroot}")
+    logging.info(f"Processing dataset from: {dataset.dataroot}")
 
     scenes = dataset.scenes
     scenes_count = len(scenes)
@@ -163,20 +177,22 @@ accumulator_strategies = {
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="patch scene arguments")
-    parser.add_argument("--dataset", type=str, choices=['nuscenes', 'waymo'], default='nuscenes', help="Dataset.")
-    parser.add_argument("--version", type=str, default="v1.0-mini", help="NuScenes version.")
-    parser.add_argument("--dataroot", type=str, default="./temp/nuscenes", help="Data root location.")
-    parser.add_argument("--strategy", type=str, default="default", help="Accumulation strategy.")
-    parser.add_argument("--instances", action="store_true", help="Export instances.")
-    parser.add_argument("--frames", action="store_true", help="Export frames.")
-    parser.add_argument('--start_scene_index', type=int, default=0, help='Specify your scene index to start with.')
+    parser = argparse.ArgumentParser(description='patch scene arguments')
+    parser.add_argument('--dataset', type=str, choices=['nuscenes', 'waymo'], default='nuscenes', help='Dataset.')
+    parser.add_argument('--version', type=str, default='v1.0-mini', help='NuScenes version.')
+    parser.add_argument('--dataroot', type=str, default='./temp/nuscenes', help='Data root location.')
+    parser.add_argument('--strategy', type=str, default='default', help='Accumulation strategy.')
+    parser.add_argument('--instances', action='store_true', help='Export instances.')
+    parser.add_argument('--frames', action='store_true', help='Export frames.')
+    parser.add_argument('--enable_logging', action='store_true', help='Save additional logs to file.')
     parser.add_argument('--num_workers', type=int, default=1, choices=range(1, 128), help='Count of parallel workers.')
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
+
+    logging.disabled = not args.enable_logging
 
     dataset_type = args.dataset
 

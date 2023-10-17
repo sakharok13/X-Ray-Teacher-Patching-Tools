@@ -21,6 +21,10 @@ class WaymoDataset(Dataset):
         self.__scene_ids = find_all_scenes(dataset_root=dataset_root)
 
     @property
+    def dataroot(self) -> str:
+        return self.__dataset_root
+
+    @property
     def scenes(self) -> list:
         return list(self.__scene_ids)
 

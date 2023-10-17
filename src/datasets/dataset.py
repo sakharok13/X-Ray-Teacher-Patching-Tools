@@ -16,6 +16,11 @@ class Dataset(ABC):
 
     @property
     @abstractmethod
+    def dataroot(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
     def scenes(self) -> list:
         ...
 

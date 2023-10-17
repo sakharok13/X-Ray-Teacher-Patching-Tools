@@ -16,12 +16,10 @@ class OnceFramePatcher(FramePatcher):
                  seq_id: str,
                  frame_id: str,
                  frame_point_cloud: np.ndarray,
-                 # frame_descriptor: dict,
                  once: ONCE):
         self.__seq_id = seq_id
         self.__frame_id = frame_id
         self.__frame_point_cloud = frame_point_cloud
-        # self.__frame_descriptor = frame_descriptor
         self.__once = once
 
     @classmethod
@@ -86,7 +84,6 @@ class OnceFramePatcher(FramePatcher):
 
         instance_index = ids.index(instance_id)
         boxes = annotations['boxes_3d']
-        # box - cx, cy, cz, l, w, h, θ
         box = boxes[instance_index]
         center_xyz = box[0:3]
         dimensions_lwh = np.array([box[3], box[4], box[5]])
@@ -107,7 +104,6 @@ class OnceFramePatcher(FramePatcher):
                                                    seq_id=self.__seq_id,
                                                    frame_id=self.__frame_id,
                                                    instance_id=instance_id,
-                                                   # frame_descriptor=self.__frame_descriptor,
                                                    once=self.__once)
 
         # Append instance patch: append should happen along

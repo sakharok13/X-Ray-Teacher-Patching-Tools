@@ -44,7 +44,6 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
         frame_id = frame_ids[i]
         print("processing frame " + str(i) + " of " +
               str(len(frame_ids)) + " id: " + str(frame_id))
-        # points = dataset.load_point_cloud(seq_id, frame_id)
 
         current_categories = current_annotations['names']
         current_boxes_3d = current_annotations['boxes_3d']
@@ -70,7 +69,6 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
                 instance.frame_ids.append(frame_id)
                 box = current_boxes_3d[idx]
                 instance.boxes_3d.append(box)
-                # instance.clouds.append(get_instance_ptcloud(points, box))
                 instances_dict[len(instances_dict)] = instance
 
             # fill instance ids for the first frame with annotations
@@ -120,7 +118,6 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
                 new_instance.frame_ids.append(next_frame_id)
                 box = next_boxes_3d[idx]
                 new_instance.boxes_3d.append(box)
-                # new_instance.clouds.append(get_instance_ptcloud(points, box))
                 instances_dict[len(instances_dict)] = new_instance
 
         data["frames"][next_i]["annos"]["instance_ids"] = next_instance_ids
@@ -129,4 +126,4 @@ def track_instances(dataset, dataset_root, seq_id, frame_ids):
 
     output_filename = get_tracking_file_name(dataset_root, seq_id)
     with open(output_filename, "w") as output_file:
-        json.dump(data, output_file) #, indent=4)
+        json.dump(data, output_file)

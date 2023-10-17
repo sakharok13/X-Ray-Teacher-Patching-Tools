@@ -28,13 +28,13 @@ class OnceDataset(Dataset):
 
     def get_scene_iterator(self, scene_id: str) -> Dataset.SceneIterator:
         assert scene_id in self.__scenes_lookup
-        # scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
+
         return OnceSceneIterator(scene=self.__scenes_lookup[scene_id],
                                  once=self.__once)
 
     def load_frame_patcher(self, frame_id: str,
                                  scene_id: str) -> FramePatcher:
-        # scene_descriptor = self.__load_scene_descriptor(scene_id=scene_id)
+
         return OnceFramePatcher.load(seq_id=self.__scenes_lookup[scene_id],
                                      frame_id=frame_id,
                                      once=self.__once)

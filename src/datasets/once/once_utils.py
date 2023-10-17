@@ -1,12 +1,12 @@
 import json
 import functools
-import open3d as o3d
 import os.path as osp
 from collections import defaultdict
 import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 import time
+
 
 def split_info_loader_helper(func):
     @functools.wraps(func)
@@ -58,7 +58,6 @@ class ONCE(object):
     def __init__(self, dataset_root, typeds):
         self.dataset_root = dataset_root
         self.data_folder = osp.join(self.dataset_root, 'data')
-        # self.tracked = tracked
         self._collect_basic_infos(typeds)
 
     @property
@@ -392,7 +391,6 @@ class ONCE(object):
         return points_list
 
     def is_inside_3d_box(self, point, cx, cy, cz, l, w, h, theta):
-        # cx, cy, cz, l, w, h, theta = box
         theta_deg = np.degrees(theta)
         # rotation transform matrix (rotate to minus! theta)
         R = np.array([[np.cos(-theta), -np.sin(-theta), 0],
@@ -406,6 +404,8 @@ class ONCE(object):
         ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <=
                                                               rotated_point[1] <= w / 2) and (-h / 2 <= rotated_point[2] <= h / 2)
         return ifinside, np.hstack([rotated_point, point[3]])
+
+
 
     def move_back_to_frame_coordinates(self, point, box):
         cx, cy, cz, l, w, h, theta = box
@@ -468,12 +468,10 @@ def get_instance_point_cloud(
         :return: np.ndarray[float]
             Returns point cloud for the given object.
         """
-    start_time = time.time()
+
 
     instance_ids = get_frame_instance_ids(seq_id, frame_id, once)
     annotations = once.get_frame_anno(seq_id, frame_id)
-
-    points_reset_to_zero = []
 
     if instance_id in instance_ids:
         box_index = instance_ids.index(instance_id)
@@ -481,22 +479,48 @@ def get_instance_point_cloud(
         cx, cy, cz, l, w, h, theta = box
         maxd = max(l, w, h)
 
-        for point in frame_point_cloud.T:
-            if cx-maxd < point[0] < cx+maxd and cy-maxd < point[1] < cy+maxd and cz-maxd < point[2] < cz+maxd:
-                is_inside, zeroed_pt = once.is_inside_3d_box(point, cx, cy, cz, l, w, h, theta)
-                if is_inside:
-                    points_reset_to_zero.append(zeroed_pt)
+        start_time2 = time.time()
+        frame_point_cloud_t = frame_point_cloud.T
+        points = frame_point_cloud_t[:, :3]
 
-        reset_cloud = np.array(points_reset_to_zero)
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"Elapsed time: {elapsed_time} seconds")
+        lower_bounds = [cx - maxd, cy - maxd, cz - maxd]
+        upper_bounds = [cx + maxd, cy + maxd, cz + maxd]
+
+        mask = np.all((lower_bounds <= points) & (points <= upper_bounds), axis=1)
+        points_inside = frame_point_cloud_t[mask]
+
+        reset_cloud = transform_points(points_inside, cx, cy, cz, l, w, h, theta)
+
+        end_time2 = time.time()
+        elapsed_time2 = end_time2 - start_time2
+        print(f"Elapsed time 2: {elapsed_time2} seconds")
         return reset_cloud.T
+
+
     else:
         end_time = time.time()
         raise ValueError(
             f"Instance ID {instance_id} is not present in the instance_ids list.")
 
+def transform_points(points, cx, cy, cz, l, w, h, theta):
+    theta_rad = -theta  # rotation transform matrix (rotate to minus! theta)
+    R = np.array([[np.cos(theta_rad), -np.sin(theta_rad), 0],
+                      [np.sin(theta_rad), np.cos(theta_rad), 0],
+                      [0, 0, 1]])
+
+    points_xyz = points[:, :3]
+
+    translated_points = points_xyz - np.array([cx, cy, cz])
+    rotated_points = np.dot(translated_points, R.T)
+
+    inside_mask = (np.all(np.logical_and((-l / 2 <= rotated_points), (rotated_points <= l / 2)), axis=1) &
+                       np.all(np.logical_and((-w / 2 <= rotated_points), (rotated_points <= w / 2)), axis=1) &
+                       np.all(np.logical_and((-h / 2 <= rotated_points), (rotated_points <= h / 2)), axis=1))
+    intensity = points[inside_mask, 3]
+    transformed_points = rotated_points[inside_mask]
+    points_inside = np.column_stack((transformed_points, intensity))
+
+    return points_inside
 
 def get_annotations_file_name(datafolder_root, seq_id):
     return datafolder_root + '/' + str(seq_id) + '/' + str(seq_id) + '.json'
@@ -507,7 +531,7 @@ def get_annotations_tracked_file_name(datafolder_root, seq_id):
         str(seq_id) + '/' + str(seq_id) + '_tracked.json'
 
 
-def reapply_frame_transformation(point_cloud, seq_id, frame_id, instance_id,  once): # frame_descriptor,
+def reapply_frame_transformation(point_cloud, seq_id, frame_id, instance_id,  once): 
     ids = get_frame_instance_ids(seq_id, frame_id, once)
     instance_index = ids.index(instance_id)
     annotations = once.get_frame_anno(seq_id, frame_id)
@@ -519,3 +543,4 @@ def reapply_frame_transformation(point_cloud, seq_id, frame_id, instance_id,  on
 
     moved_cloud = np.array(moved_back_points)
     return moved_cloud.T
+

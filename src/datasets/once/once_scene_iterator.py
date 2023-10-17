@@ -20,7 +20,6 @@ class OnceSceneIterator(Dataset.SceneIterator):
         self.__frame_ids = self.__get_frame_ids()
         self.__current_sample = self.__get_first_frame()
         self.__current_id = 0
-        # self.__annotated_frames = self.__get_annotated_frames()
 
     def __iter__(self) -> OnceSceneIterator:
         """Reset iterator and returns itself.

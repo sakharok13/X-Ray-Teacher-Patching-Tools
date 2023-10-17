@@ -44,7 +44,8 @@ class WaymoDataset(Dataset):
         path_to_save = self.__get_patched_frame_path(scene_id=scene_id,
                                                      frame_id=frame_id)
 
-        return os.path.exists(path_to_save)
+        # We can serialise point cloud if there is no point cloud saved.
+        return not os.path.exists(path_to_save)
 
     def serialise_frame_point_clouds(self,
                                      scene_id: str,

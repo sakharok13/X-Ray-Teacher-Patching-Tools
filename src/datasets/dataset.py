@@ -28,6 +28,12 @@ class Dataset(ABC):
         ...
 
     @abstractmethod
+    def can_serialise_frame_point_cloud(self,
+                                        scene_id: str,
+                                        frame_id: str) -> bool:
+        ...
+
+    @abstractmethod
     def serialise_frame_point_clouds(self,
                                      scene_id: str,
                                      frame_id: str,

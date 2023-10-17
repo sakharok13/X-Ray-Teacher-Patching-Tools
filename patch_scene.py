@@ -65,6 +65,11 @@ def __patch_scene(scene_id: str,
     frames_to_instances_lookup: dict = dict()
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
+            if not dataset.can_serialise_frame_point_cloud(scene_id=scene_id,
+                                                           frame_id=frame_id):
+                print(f"Skipping {frame_id}...")
+                continue
+
             if frame_id not in frames_to_instances_lookup:
                 frames_to_instances_lookup[frame_id] = set()
             frames_to_instances_lookup[frame_id].add(instance)

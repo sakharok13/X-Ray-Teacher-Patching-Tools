@@ -1,12 +1,15 @@
-import json
+import numpy as np
 import functools
+import os
 import os.path as osp
 from collections import defaultdict
 import cv2
-import numpy as np
-from scipy.spatial.transform import Rotation
-import time
+import json
+import multiprocessing
 
+
+def get_annotations_file_name(datafolder_root, seq_id):
+    return datafolder_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '.json'
 
 def split_info_loader_helper(func):
     @functools.wraps(func)
@@ -20,7 +23,6 @@ def split_info_loader_helper(func):
         return split_list
 
     return wrapper
-
 
 class ONCE(object):
     """
@@ -352,195 +354,159 @@ class ONCE(object):
             img_dict[cam_name] = img_buf
         return img_dict
 
-    def frame_concat(self, seq_id, frame_id, concat_cnt=0):
-        """
-        return new points coordinates according to pose info
-        :param seq_id:
-        :param frame_id:
-        :return:
-        """
-        split_name = self._find_split_name(seq_id)
 
-        seq_info = getattr(self, '{}_info'.format(split_name))[seq_id]
-        start_idx = seq_info['frame_list'].index(frame_id)
-        points_list = []
-        translation_r = None
-        try:
-            for i in range(start_idx, start_idx + concat_cnt + 1):
-                current_frame_id = seq_info['frame_list'][i]
-                frame_info = seq_info[current_frame_id]
-                transform_data = frame_info['pose']
+class Instance:
+    def __init__(self, instance_id, tracking, category, scene_id, frame_ids, boxes_3d):
+        self.instance_id = instance_id
+        self.tracking = tracking
+        self.category = category
+        self.scene_id = scene_id
+        self.frame_ids = []
+        self.boxes_3d = []
 
-                points = self.load_point_cloud(seq_id, current_frame_id)
-                points_xyz = points[:, :3]
+def get_tracking_file_name(dataset_root, seq_id):
+    return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '_tracked.json'
 
-                rotation = Rotation.from_quat(transform_data[:4]).as_matrix()
-                translation = np.array(transform_data[4:]).transpose()
-                points_xyz = np.dot(points_xyz, rotation.T)
-                points_xyz = points_xyz + translation
-                if i == start_idx:
-                    translation_r = translation
-                points_xyz = points_xyz - translation_r
-                points_list.append(np.hstack([points_xyz, points[:, 3:]]))
-        except ValueError:
-            print('warning: part of the frames have no available pose information, return first frame point instead')
-            points = self.load_point_cloud(
-                seq_id, seq_info['frame_list'][start_idx])
-            points_list.append(points)
-            return points_list
-        return points_list
+def track_instances(dataset, dataset_root, seq_id):
+    instances_dict = {}
 
-    def is_inside_3d_box(self, point, cx, cy, cz, l, w, h, theta):
-        theta_deg = np.degrees(theta)
-        # rotation transform matrix (rotate to minus! theta)
-        R = np.array([[np.cos(-theta), -np.sin(-theta), 0],
-                      [np.sin(-theta), np.cos(-theta), 0],
-                      [0, 0, 1]])
-        # to box coordinates
-        translated_point = np.array(
-            [point[0], point[1], point[2]]) - np.array([cx, cy, cz])
-
-        rotated_point = np.dot(R, translated_point)
-        ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <=
-                                                              rotated_point[1] <= w / 2) and (-h / 2 <= rotated_point[2] <= h / 2)
-        return ifinside, np.hstack([rotated_point, point[3]])
-
-
-
-    def move_back_to_frame_coordinates(self, point, box):
-        cx, cy, cz, l, w, h, theta = box
-        theta_deg = np.degrees(theta)
-        # rotation transform matrix (rotate to plus! theta)
-        R = np.array([[np.cos(theta), -np.sin(theta), 0],
-                      [np.sin(theta), np.cos(theta), 0],
-                      [0, 0, 1]])
-        # to frame coordinates
-        translated_point = np.array(
-            [point[0], point[1], point[2]]) + np.array([cx, cy, cz])
-
-        rotated_point = np.dot(R, translated_point)
-
-        return np.hstack([rotated_point, point[3]])
-
-
-def get_frame_instance_ids(scene_id, frame_id, once):
-    instance_ids = []
-
-    anno_json = get_annotations_tracked_file_name(once.data_folder, scene_id)
+    anno_json = get_annotations_file_name(dataset_root, seq_id)
     with open(anno_json, 'r') as json_file:
         data = json.load(json_file)
 
-        if 'frames' in data and frame_id in {
-                frame.get('frame_id') for frame in data['frames']}:
-            frame_info = next(
-                frame for frame in data['frames'] if frame.get('frame_id') == frame_id)
-            if 'annos' in frame_info:
-                instance_ids = frame_info['annos']['instance_ids']
+    len_frames = len(data['frames'])
 
-    return instance_ids
+    i = 0
+    while i < (len_frames - 1):
+
+        current_annotations = data['frames'][i].get('annos', None)  # dataset.get_frame_anno(seq_id, frame_ids[i])
+        if current_annotations is None:
+            i += 1
+            continue
+
+        next_i = None
+        for j in range(i + 1, len_frames):
+            next_annotations = data['frames'][j].get('annos', None)  # dataset.get_frame_anno(seq_id, frame_ids[j])
+            if next_annotations is not None:
+                next_i = j
+                break
+
+        if next_i == None:
+            break
+
+        print("processing frame " + str(i+1) + " of " +
+              str(len_frames) )
+
+        frame_id = data['frames'][i].get('frame_id', None)
+        next_frame_id = data['frames'][next_i].get('frame_id', None)
+
+        current_categories = current_annotations['names']
+        current_boxes_3d = current_annotations['boxes_3d']
+
+        # next_frame_id = frame_ids[next_i]
+        next_annotations = data['frames'][next_i].get('annos', None)  # dataset.get_frame_anno(seq_id, next_frame_id)
+
+        next_categories = next_annotations['names']
+        next_boxes_3d = next_annotations['boxes_3d']
+
+        if not instances_dict:
+            # first frame
+            first_instance_ids = []
+
+            for idx, category in enumerate(current_categories):
+                first_instance_ids.append(len(instances_dict))
+                instance = Instance(instance_id=len(instances_dict),
+                                    tracking=[],
+                                    category=category,
+                                    scene_id=seq_id,
+                                    frame_ids=[],
+                                    boxes_3d=[])
+                instance.frame_ids.append(frame_id)
+                box = current_boxes_3d[idx]
+                instance.boxes_3d.append(box)
+                instances_dict[len(instances_dict)] = instance
+
+            # fill instance ids for the first frame with annotations
+            data["frames"][i]["annos"]["instance_ids"] = first_instance_ids
+
+        next_instance_ids = []
+
+        for idx, next_category in enumerate(next_categories):
+            next_box_3d = next_boxes_3d[idx]
+            next_center = [next_box_3d[0], next_box_3d[1], next_box_3d[2]]
+            matched_instance_id = None
+            min_distance = max(next_box_3d[3:6]) * 2
+
+            for instance_id, instance in instances_dict.items():
+                if frame_id in instance.frame_ids and instance.category == next_category:
+                    current_box_3d = instance.boxes_3d[-1]
+                    current_center = [
+                        current_box_3d[0],
+                        current_box_3d[1],
+                        current_box_3d[2]]
+                    distance = np.linalg.norm(
+                        np.array(current_center) - np.array(next_center))
+
+                    if distance < min_distance:
+                        min_distance = distance
+                        matched_instance_id = instance_id
+
+            if matched_instance_id is not None:
+                # matched
+                next_instance_ids.append(matched_instance_id)
+                instances_dict[matched_instance_id].frame_ids.append(
+                    next_frame_id)
+                instances_dict[matched_instance_id].boxes_3d.append(
+                    next_box_3d)
+
+            else:
+                # unmatched object
+                next_instance_ids.append(len(instances_dict))
+                new_instance = Instance(instance_id=len(instances_dict),
+                                        tracking=[],
+                                        category=next_category,
+                                        scene_id=seq_id,
+                                        frame_ids=[],
+                                        boxes_3d=[])
+
+                instances_dict[len(instances_dict)] = new_instance
+                new_instance.frame_ids.append(next_frame_id)
+                box = next_boxes_3d[idx]
+                new_instance.boxes_3d.append(box)
+                instances_dict[len(instances_dict)] = new_instance
+
+        data["frames"][next_i]["annos"]["instance_ids"] = next_instance_ids
+
+        i += 1
+
+    output_filename = get_tracking_file_name(dataset_root, seq_id)
+    with open(output_filename, "w") as output_file:
+        json.dump(data, output_file)
+
+def process_batch(scenes_batch, dataset, dataset_root):
+    for seq_id in scenes_batch:
+        track_instances(dataset, dataset_root, seq_id)
+
+def parallel_process(scenes, dataset, dataset_root):
+    num_workers = multiprocessing.cpu_count()
+    print("cpu count: " + str(multiprocessing.cpu_count()))
+    scenes_count = len(scenes)
+
+    batches = [scenes[i:i + len(scenes) // num_workers] for i in range(0, len(scenes), len(scenes) // num_workers)]
 
 
-def get_frame_point_cloud(seq_id, frame_id, once):
-    frame_cloud = once.load_point_cloud(seq_id, frame_id)
-    return frame_cloud.T
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
+    #     executor.map(process_batch, batches, [dataset] * num_workers, [dataset_root] * num_workers)
+
+    # with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+    #     pool.starmap(track_instances, [(dataset, dataset_root, seq_id) for seq_id in scenes])
 
 
-def get_instance_point_cloud(
-        seq_id,
-        frame_id,
-        instance_id,
-        frame_point_cloud,
-        once):
-    """Returns point cloud for the given instance in the given frame.
+if __name__ == '__main__':
+    dataset_root = "./temp/ONCE"
+    dataset = ONCE(dataset_root, 'train')
+    scenes_path = osp.join(dataset_root, 'data')
+    scenes = os.listdir(scenes_path)
 
-        The returned point cloud has reset rotation and translation.
-
-        :param seq_id: str
-            ID of a scene (sequence).
-        :param frame_id: str
-            ID of a frame (aka sample).
-        :param instance_id: str
-            ID of an instance.
-        :param frame_point_cloud:
-            np.ndarray point cloud.
-        :param once:
-            Once dataset instance.
-        :return: np.ndarray[float]
-            Returns point cloud for the given object.
-        """
-
-
-    instance_ids = get_frame_instance_ids(seq_id, frame_id, once)
-    annotations = once.get_frame_anno(seq_id, frame_id)
-
-    if instance_id in instance_ids:
-        box_index = instance_ids.index(instance_id)
-        box = annotations['boxes_3d'][box_index]
-        cx, cy, cz, l, w, h, theta = box
-        maxd = max(l, w, h)
-
-        start_time2 = time.time()
-        frame_point_cloud_t = frame_point_cloud.T
-        points = frame_point_cloud_t[:, :3]
-
-        lower_bounds = [cx - maxd, cy - maxd, cz - maxd]
-        upper_bounds = [cx + maxd, cy + maxd, cz + maxd]
-
-        mask = np.all((lower_bounds <= points) & (points <= upper_bounds), axis=1)
-        points_inside = frame_point_cloud_t[mask]
-
-        reset_cloud = transform_points(points_inside, cx, cy, cz, l, w, h, theta)
-
-        end_time2 = time.time()
-        elapsed_time2 = end_time2 - start_time2
-        print(f"Elapsed time 2: {elapsed_time2} seconds")
-        return reset_cloud.T
-
-
-    else:
-        end_time = time.time()
-        raise ValueError(
-            f"Instance ID {instance_id} is not present in the instance_ids list.")
-
-def transform_points(points, cx, cy, cz, l, w, h, theta):
-    theta_rad = -theta  # rotation transform matrix (rotate to minus! theta)
-    R = np.array([[np.cos(theta_rad), -np.sin(theta_rad), 0],
-                      [np.sin(theta_rad), np.cos(theta_rad), 0],
-                      [0, 0, 1]])
-
-    points_xyz = points[:, :3]
-
-    translated_points = points_xyz - np.array([cx, cy, cz])
-    rotated_points = np.dot(translated_points, R.T)
-
-    inside_mask = (np.all(np.logical_and((-l / 2 <= rotated_points), (rotated_points <= l / 2)), axis=1) &
-                       np.all(np.logical_and((-w / 2 <= rotated_points), (rotated_points <= w / 2)), axis=1) &
-                       np.all(np.logical_and((-h / 2 <= rotated_points), (rotated_points <= h / 2)), axis=1))
-    intensity = points[inside_mask, 3]
-    transformed_points = rotated_points[inside_mask]
-    points_inside = np.column_stack((transformed_points, intensity))
-
-    return points_inside
-
-def get_annotations_file_name(datafolder_root, seq_id):
-    return datafolder_root + '/' + str(seq_id) + '/' + str(seq_id) + '.json'
-
-
-def get_annotations_tracked_file_name(datafolder_root, seq_id):
-    return datafolder_root + '/' + \
-        str(seq_id) + '/' + str(seq_id) + '_tracked.json'
-
-
-def reapply_frame_transformation(point_cloud, seq_id, frame_id, instance_id,  once):
-    ids = get_frame_instance_ids(seq_id, frame_id, once)
-    instance_index = ids.index(instance_id)
-    annotations = once.get_frame_anno(seq_id, frame_id)
-    boxes = annotations['boxes_3d']
-    box = boxes[instance_index]
-    moved_back_points = []
-    for point in point_cloud:
-        moved_back_points.append(once.move_back_to_frame_coordinates(point, box))
-
-    moved_cloud = np.array(moved_back_points)
-    return moved_cloud.T
-
+    # parallel_process(scenes, dataset, dataset_root)
+    track_instances(dataset, dataset_root, scenes[0]) # for one scene!!! 

@@ -390,24 +390,21 @@ def build_sequence_id_to_index(pickle_data):
 def track_instances(dataset, dataset_root, seq_id, pickle_data, seq_id_to_index, outfile):
     instances_dict = {}
     outpath = osp.join(dataset_root, outfile + '_' + str(seq_id) + '.pkl')
-    # anno_json = get_annotations_file_name(dataset_root, seq_id)
-    # with open(anno_json, 'r') as json_file:
-    #     data = json.load(json_file)
 
     next_seq = get_next_string(seq_id)
-    len_frames = seq_id_to_index[next_seq] - seq_id_to_index[seq_id]  # len(data['frames'])
+    len_frames = seq_id_to_index[next_seq] - seq_id_to_index[seq_id]  
 
     i = 0
-    while i < len_frames:
+    while i < (len_frames - 1):
 
-        current_annotations = pickle_data[i].get('annos', None)  # dataset.get_frame_anno(seq_id, frame_ids[i])
+        current_annotations = pickle_data[i].get('annos', None)  
         if current_annotations is None:
             i += 1
             continue
 
         next_i = None
         for j in range(i + 1, len_frames):
-            next_annotations = pickle_data[j].get('annos', None)  # dataset.get_frame_anno(seq_id, frame_ids[j])
+            next_annotations = pickle_data[j].get('annos', None)  
             if next_annotations is not None:
                 next_i = j
                 break
@@ -424,8 +421,7 @@ def track_instances(dataset, dataset_root, seq_id, pickle_data, seq_id_to_index,
         current_categories = current_annotations['name']
         current_boxes_3d = current_annotations['boxes_3d']
 
-        # next_frame_id = frame_ids[next_i]
-        next_annotations = pickle_data[next_i].get('annos', None)  # dataset.get_frame_anno(seq_id, next_frame_id)
+        next_annotations = pickle_data[next_i].get('annos', None)  
 
         next_categories = next_annotations['name']
         next_boxes_3d = next_annotations['boxes_3d']

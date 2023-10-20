@@ -23,6 +23,10 @@ class NuscenesDataset(Dataset):
         self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}
 
     @property
+    def dataroot(self) -> str:
+        return self.__nuscenes.dataroot
+
+    @property
     def scenes(self) -> list:
         return self.__scenes
 

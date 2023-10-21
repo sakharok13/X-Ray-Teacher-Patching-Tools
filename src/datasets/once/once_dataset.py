@@ -14,10 +14,10 @@ from src.datasets.once.once_utils import ONCE, get_frame_point_cloud, get_instan
 
 class OnceDataset(Dataset):
     def __init__(self,
-                 typeds='train',
+                 split='train',
                  dataroot='./temp/ONCE'):
-        self.__once = ONCE(dataroot, typeds)
-        self.__once._collect_basic_infos(typeds)
+        self.__once = ONCE(dataroot, split)
+        self.__once._collect_basic_infos(split)
         self.__dataroot = dataroot
         self.__scenes = os.listdir('./temp/ONCE/data')
         self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}

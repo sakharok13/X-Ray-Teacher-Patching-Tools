@@ -157,7 +157,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='patch scene arguments')
     parser.add_argument('--dataset', type=str, choices=['nuscenes', 'once', 'waymo'], default='nuscenes', help='Dataset.')
     parser.add_argument('--version', type=str, default='v1.0-mini', help='NuScenes version.')
-    parser.add_argument("--type", type=str, choices=['train', 'test', 'val', 'raw_small', 'raw_medium', 'raw_large'], default="train", help="Once dataset type.")
+    parser.add_argument("--split", type=str, choices=['train', 'test', 'val', 'raw_small', 'raw_medium', 'raw_large'], default="train", help="Once dataset split type.")
     parser.add_argument('--dataroot', type=str, default='./temp/nuscenes', help='Data root location.')
     parser.add_argument('--strategy', type=str, default='default', help='Accumulation strategy.')
     parser.add_argument('--instances', action='store_true', help='Export instances.')
@@ -177,7 +177,7 @@ def main():
     if dataset_type == 'nuscenes':
         dataset = NuscenesDataset(version=args.version, dataroot=args.dataroot)
     elif dataset_type == 'once':
-        dataset = OnceDataset(type=args.type, dataroot=args.dataroot)
+        dataset = OnceDataset(split=args.split, dataroot=args.dataroot)
     elif dataset_type == 'waymo':
         dataset = WaymoDataset(dataset_root=args.dataroot)
     else:

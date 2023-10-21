@@ -16,8 +16,7 @@ class DefaultAccumulatorStrategy(AccumulationStrategy):
                  frame_no: int) -> np.ndarray:
         if next_point_cloud.size == 0:
             return initial_point_cloud
+        elif initial_point_cloud.size == 0:
+            return next_point_cloud
         else:
-            if initial_point_cloud.size == 0:
-                return next_point_cloud
-            else:
-                return np.concatenate((initial_point_cloud, next_point_cloud), axis=1)
+            return np.concatenate((initial_point_cloud, next_point_cloud), axis=1)

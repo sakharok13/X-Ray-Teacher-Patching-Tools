@@ -3,8 +3,8 @@ import datetime
 import os
 import numpy as np
 import open3d as o3d
-import threading
-import concurrent.futures
+import multiprocessing
+from functools import partial
 
 from tqdm import tqdm
 
@@ -120,19 +120,6 @@ def __patch_scene(scene_id: str,
     return True
 
 
-def __process_batch(scenes: list,
-                    dataset: Dataset,
-                    accumulation_strategy: AccumulationStrategy,
-                    export_instances: bool,
-                    export_frames: bool):
-    for scene_id in tqdm(scenes, desc=f"Worker #{threading.current_thread().ident}"):
-        __patch_scene(scene_id=str(scene_id),
-                      dataset=dataset,
-                      accumulation_strategy=accumulation_strategy,
-                      export_instances=export_instances,
-                      export_frames=export_frames)
-
-
 def __process_dataset(dataset: Dataset,
                       accumulation_strategy: AccumulationStrategy,
                       export_instances: bool,
@@ -147,30 +134,16 @@ def __process_dataset(dataset: Dataset,
     scenes = dataset.scenes
     scenes_count = len(scenes)
 
-    batches = list()
-    batch_size = scenes_count // num_workers
+    patch_scene = partial(
+        __patch_scene,
+        dataset=dataset,
+        accumulation_strategy=accumulation_strategy,
+        export_instances=export_instances,
+        export_frames=export_frames
+    )
 
-    for batch_index in range(num_workers):
-        batch_start = batch_index * batch_size
-        batch_finish = (batch_index + 1) * batch_size
-
-        if batch_index + 1 == num_workers and scenes_count % num_workers > 0:
-            # Last batch will be a bit bigger if there is not enough elements
-            # at the end to end up in a standalone batch.
-            batch_finish = len(scenes)
-
-        batches.append(scenes[batch_start:batch_finish])
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-        thread_results = executor.map(__process_batch,
-                                      batches,
-                                      [dataset] * num_workers,
-                                      [accumulation_strategy] * num_workers,
-                                      [export_instances] * num_workers,
-                                      [export_frames] * num_workers)
-
-        for result in thread_results:
-            print(result)
+    with multiprocessing.Pool(num_workers) as p:
+        list(tqdm(p.imap(patch_scene, scenes), total=scenes_count))
 
 
 accumulator_strategies = {
@@ -188,7 +161,7 @@ def parse_arguments():
     parser.add_argument('--instances', action='store_true', help='Export instances.')
     parser.add_argument('--frames', action='store_true', help='Export frames.')
     parser.add_argument('--enable_logging', action='store_true', help='Save additional logs to file.')
-    parser.add_argument('--num_workers', type=int, default=1, choices=range(1, 128), help='Count of parallel workers.')
+    parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count(), help='Count of parallel workers.')
     return parser.parse_args()
 
 

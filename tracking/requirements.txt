@@ -1,5 +1,0 @@
-numpy
-functools
-opencv-python
-json
-multiprocessing

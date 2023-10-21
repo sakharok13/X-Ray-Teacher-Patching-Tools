@@ -119,7 +119,7 @@ class ONCE(object):
         for attr in attr_list:
             if getattr(self, '{}_split_list'.format(attr)) is not None:
                 split_list = getattr(self, '{}_split_list'.format(attr))
-                split_list = {'000092'}
+                split_list = {'000092'}  # REMOVE BEFORE COMMITTING
                 info_dict = getattr(self, '{}_info'.format(attr))
                 for seq in split_list:
                     anno_file_path = osp.join(
@@ -407,7 +407,7 @@ class ONCE(object):
 
 
 
-    def move_back_to_frame_coordinates(self, point, box):
+    def move_back_to_frame_coordinates_old(self, point, box):
         cx, cy, cz, l, w, h, theta = box
         theta_deg = np.degrees(theta)
         # rotation transform matrix (rotate to plus! theta)
@@ -421,6 +421,26 @@ class ONCE(object):
         rotated_point = np.dot(R, translated_point)
 
         return np.hstack([rotated_point, point[3]])
+
+    def move_back_to_frame_coordinates(self, points, box):
+        cx, cy, cz, l, w, h, theta = box
+        theta_deg = np.degrees(theta)
+        points = points.T
+
+        # rotation transform matrix (rotate to plus! theta)
+        R = np.array([[np.cos(theta), -np.sin(theta), 0],
+                      [np.sin(theta), np.cos(theta), 0],
+                      [0, 0, 1]])
+
+        # to frame coordinates
+        translated_points = points[:, :3] + np.array([cx, cy, cz])
+
+
+        rotated_points = np.dot(translated_points, R.T)
+        intensity = points[:, 3]
+        transformed_points = np.column_stack((rotated_points, intensity))
+
+        return transformed_points.T
 
 
 def get_frame_instance_ids(scene_id, frame_id, once):
@@ -537,10 +557,8 @@ def reapply_frame_transformation(point_cloud, seq_id, frame_id, instance_id,  on
     annotations = once.get_frame_anno(seq_id, frame_id)
     boxes = annotations['boxes_3d']
     box = boxes[instance_index]
-    moved_back_points = []
-    for point in point_cloud:
-        moved_back_points.append(once.move_back_to_frame_coordinates(point, box))
 
-    moved_cloud = np.array(moved_back_points)
-    return moved_cloud.T
+    moved_cloud = once.move_back_to_frame_coordinates(point_cloud, box)
+
+    return moved_cloud
 

@@ -29,6 +29,7 @@ def __patch_scene(scene_id: str,
                   dataset: Dataset,
                   export_instances: bool,
                   export_frames: bool) -> bool:
+    logging.info(f"[Scene {scene_id}] Starting...")
     grouped_instances = group_instances_across_frames(scene_id=scene_id, dataset=dataset)
 
     point_cloud_accumulator = PointCloudAccumulator(step=1,
@@ -116,6 +117,8 @@ def __patch_scene(scene_id: str,
                          f"saved to {saved_path}")
         else:
             logging.error(f"[Scene {scene_id}] There was an error saving the point cloud for frame {frame_id}")
+
+    logging.info(f"[Scene {scene_id}] Wrapping up.")
 
     # Return OK status when finished processing.
     return True

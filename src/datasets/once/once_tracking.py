@@ -1,8 +1,9 @@
-import multiprocessing
 import os
 import os.path as osp
+import multiprocessing
 import pickle
 from functools import partial
+from src.datasets.once.once_utils import aggregate_frames_in_sequences, build_frame_id_to_annotations_lookup
 
 import numpy as np
 from tqdm import tqdm
@@ -18,28 +19,7 @@ class Instance:
         self.boxes_3d = []
 
 
-def get_tracking_file_name(dataset_root, seq_id):
-    return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '_tracked.json'
 
-
-def aggregate_frames_in_sequences(pickle_data):
-    sequences_to_frames_lookup = {}
-    for data in pickle_data:
-        sequence_id = data['sequence_id']
-        frame_id = data['frame_id']
-        if sequence_id not in sequences_to_frames_lookup:
-            sequences_to_frames_lookup[sequence_id] = []
-        sequences_to_frames_lookup[sequence_id].append(frame_id)
-    return sequences_to_frames_lookup
-
-
-def build_frame_id_to_annotations_lookup(pickle_data):
-    id_to_annotations_lookup = {}
-    for data in pickle_data:
-        frame_id = data['frame_id']
-        assert frame_id not in id_to_annotations_lookup
-        id_to_annotations_lookup[frame_id] = data
-    return id_to_annotations_lookup
 
 
 def track_instances(seq_id,

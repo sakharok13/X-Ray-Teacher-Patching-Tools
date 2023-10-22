@@ -48,9 +48,6 @@ class OnceSceneIterator(Dataset.SceneIterator):
         instance_ids = []
         frame_id = self.__current_sample
 
-
-        print("Iterating frame " + str(self.__current_id + 1) + " of " + str(len(self.__frame_ids)))
-
         if frame_id in self.__frame_id_to_annotations_lookup:
             if 'annos' in self.__frame_id_to_annotations_lookup[frame_id]:
                 instance_ids = self.__frame_id_to_annotations_lookup[frame_id]['annos']['instance_ids']

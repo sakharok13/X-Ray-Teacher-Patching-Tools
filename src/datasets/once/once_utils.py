@@ -444,14 +444,17 @@ class ONCE(object):
         return transformed_points.T
 
 
-def get_frame_instance_ids(scene_id, frame_id, once):
+def get_frame_instance_ids(scene_id, frame_id, once, frame_id_to_annotations_lookup={}):
     instance_ids = []
 
     pickle_data = get_pickle_data(once.dataset_root, scene_id)
 
-    if frame_id in pickle_data:
-        if 'annos' in pickle_data[frame_id]:
-            instance_ids = pickle_data[frame_id]['annos']['instance_ids']
+    if frame_id_to_annotations_lookup == {}:
+        frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
+
+    if frame_id in frame_id_to_annotations_lookup:
+        if 'annos' in frame_id_to_annotations_lookup[frame_id]:
+            instance_ids = frame_id_to_annotations_lookup[frame_id]['annos']['instance_ids']
 
     return instance_ids
 
@@ -485,11 +488,13 @@ def get_instance_point_cloud(
             Returns point cloud for the given object.
         """
 
-
-    instance_ids = get_frame_instance_ids(seq_id, frame_id, once)
     pickle_data = get_pickle_data(once.dataset_root, seq_id)
     frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
-    annotations = frame_id_to_annotations_lookup['frame_id']
+
+    instance_ids = get_frame_instance_ids(seq_id, frame_id, once,
+                                          frame_id_to_annotations_lookup=frame_id_to_annotations_lookup)
+
+    annotations = frame_id_to_annotations_lookup[frame_id]['annos']
 
     if instance_id in instance_ids:
         box_index = instance_ids.index(instance_id)
@@ -511,7 +516,7 @@ def get_instance_point_cloud(
 
         end_time2 = time.time()
         elapsed_time2 = end_time2 - start_time2
-        print(f"Elapsed time 2: {elapsed_time2} seconds")
+        print(f"Elapsed time: {elapsed_time2} seconds")
         return reset_cloud.T
 
 

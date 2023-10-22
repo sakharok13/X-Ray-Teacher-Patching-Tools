@@ -40,8 +40,8 @@ def __patch_scene(scene_id: str,
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
 
-    output_folder = './ply_instances_geo/'
-    output_folder_frame = './ply_frames_geo/'
+    output_folder = './temp/ply_instances_geo/'
+    output_folder_frame = './temp/ply_frames_geo/'
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)

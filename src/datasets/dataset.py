@@ -16,6 +16,11 @@ class Dataset(ABC):
 
     @property
     @abstractmethod
+    def dataroot(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
     def scenes(self) -> list:
         ...
 
@@ -25,6 +30,12 @@ class Dataset(ABC):
 
     @abstractmethod
     def load_frame_patcher(self, scene_id: str, frame_id: str) -> FramePatcher:
+        ...
+
+    @abstractmethod
+    def can_serialise_frame_point_cloud(self,
+                                        scene_id: str,
+                                        frame_id: str) -> bool:
         ...
 
     @abstractmethod

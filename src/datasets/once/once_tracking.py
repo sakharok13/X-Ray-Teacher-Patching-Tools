@@ -1,5 +1,4 @@
-import numpy as np
-import functools
+import multiprocessing
 import os
 import os.path as osp
 from collections import defaultdict
@@ -11,6 +10,9 @@ from tqdm import tqdm
 from functools import partial
 from once_utils import ONCE
 
+import numpy as np
+from tqdm import tqdm
+
 
 class Instance:
     def __init__(self, instance_id, tracking, category, scene_id, frame_ids, boxes_3d):
@@ -20,6 +22,7 @@ class Instance:
         self.scene_id = scene_id
         self.frame_ids = []
         self.boxes_3d = []
+
 
 def get_tracking_file_name(dataset_root, seq_id):
     return dataset_root + '/data/' + str(seq_id) + '/' + str(seq_id) + '_tracked.json'
@@ -45,8 +48,11 @@ def build_frame_id_to_annotations_lookup(pickle_data):
     return id_to_annotations_lookup
 
 
-def track_instances(seq_id, dataset, dataset_root, pickle_data, sequences_to_frames_lookup,
-                    frame_id_to_annotations_lookup, outfile):
+def track_instances(seq_id,
+                    dataset_root,
+                    sequences_to_frames_lookup,
+                    frame_id_to_annotations_lookup,
+                    outfile):
     instances_dict = {}
     outpath = osp.join(dataset_root, outfile + '_' + str(seq_id) + '.pkl')
 
@@ -149,21 +155,17 @@ def track_instances(seq_id, dataset, dataset_root, pickle_data, sequences_to_fra
         print(f"Source file not found.")
 
 
-def parallel_process(dataset,
-                     dataset_root,
+def parallel_process(dataset_root,
                      scene,
-                     pickle_data,
                      sequences_to_frames_lookup,
                      frame_id_to_annotations_lookup,
                      outfile):
-    num_workers = 2  # multiprocessing.cpu_count()
+    num_workers = multiprocessing.cpu_count()
     print(f"Detected CPUs: {num_workers}")
 
     process_single_sequence = partial(
         track_instances,
-        dataset=dataset,
         dataset_root=dataset_root,
-        pickle_data=pickle_data,
         sequences_to_frames_lookup=sequences_to_frames_lookup,
         frame_id_to_annotations_lookup=frame_id_to_annotations_lookup,
         outfile=outfile,
@@ -174,8 +176,6 @@ def parallel_process(dataset,
 
 
 if __name__ == '__main__':
-    dataset_root = "D:/"
-    dataset = ONCE(dataset_root, 'raw_small')
     scenes_path = osp.join(dataset_root, 'data')
     scenes = sorted(os.listdir(scenes_path))
 
@@ -188,7 +188,8 @@ if __name__ == '__main__':
     frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
     outfile = 'once_raw_small_track'
 
-    # track_instances(scenes[0], dataset, dataset_root, pickle_data, sequences_to_frames_lookup, frame_id_to_annotations_lookup, outfile)
-
-    parallel_process(dataset, dataset_root, scenes, pickle_data, sequences_to_frames_lookup,
-                     frame_id_to_annotations_lookup, outfile)
+    parallel_process(dataset_root,
+                     scenes,
+                     sequences_to_frames_lookup,
+                     frame_id_to_annotations_lookup,
+                     outfile)

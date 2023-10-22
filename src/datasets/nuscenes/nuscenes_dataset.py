@@ -23,6 +23,10 @@ class NuscenesDataset(Dataset):
         self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}
 
     @property
+    def dataroot(self) -> str:
+        return self.__nuscenes.dataroot
+
+    @property
     def scenes(self) -> list:
         return self.__scenes
 
@@ -37,6 +41,14 @@ class NuscenesDataset(Dataset):
                            frame_id: str) -> FramePatcher:
         return NuscenesFramePatcher.load(frame_id=frame_id,
                                          nuscenes=self.__nuscenes)
+
+    def can_serialise_frame_point_cloud(self,
+                                        scene_id: str,
+                                        frame_id: str) -> bool:
+        path_to_save = self.__get_lidarseg_patched_folder_and_filename(frame_id)
+
+        # We can serialise point cloud if there is no point cloud saved.
+        return not os.path.exists(path_to_save)
 
     def serialise_frame_point_clouds(self,
                                      scene_id: str,

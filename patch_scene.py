@@ -177,7 +177,7 @@ def main():
     if dataset_type == 'nuscenes':
         dataset = NuscenesDataset(version=args.version, dataroot=args.dataroot)
     elif dataset_type == 'once':
-        dataset = OnceDataset(split=args.split, dataroot=args.dataroot)
+        dataset = OnceDataset(split=args.split, dataset_root=args.dataroot)
     elif dataset_type == 'waymo':
         dataset = WaymoDataset(dataset_root=args.dataroot)
     else:

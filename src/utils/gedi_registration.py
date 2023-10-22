@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import open3d as o3d
-from gedi.gedi import GeDi
+from gedi import GeDi
 
 
 def run_point_cloud_registration_o3d(

@@ -3,7 +3,7 @@ import numpy as np
 
 
 def convert_to_o3d_pointcloud(
-        points: np.ndarray[float]) -> o3d.geometry.PointCloud:
+        points: np.ndarray) -> o3d.geometry.PointCloud:
     """Converts a point cloud in numpy array format to an Open3D point cloud.
 
     :param points: np.ndarray
@@ -34,7 +34,7 @@ def convert_to_o3d_pointcloud(
 
 
 def convert_to_numpy_array(
-        o3d_pc: o3d.geometry.PointCloud) -> np.ndarray[float]:
+        o3d_pc: o3d.geometry.PointCloud) -> np.ndarray:
     """Converts an Open3D point cloud to a numpy array.
 
     :param o3d_pc: o3d.geometry.PointCloud

@@ -14,29 +14,53 @@ from src.datasets.once.once_utils import ONCE, get_frame_point_cloud, get_instan
 
 
 class OnceDataset(Dataset):
+    """
+    dataset structure:
+    - data_root
+        -ImageSets
+            - train_split.txt
+            - val_split.txt
+            - test_split.txt
+            - raw_split.txt
+        - data
+            - seq_id
+                - cam01
+                - cam03
+                - ...
+                -
+    """
+
     def __init__(self,
-                 split='train',
-                 dataroot='./temp/ONCE'):
-        self.__once = ONCE(dataroot, split)
-        self.__once._collect_basic_infos(split)
-        self.__dataroot = dataroot
-        self.__scenes = os.listdir(osp.join(self.__dataroot, 'data'))   # ['000013']
-        self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}
+                 dataset_root: str,
+                 split: str):
+        self.__dataset_root = dataset_root
+        self.__scenes_root = os.path.join(self.__dataset_root, 'data')
+
+        self.__once = ONCE(self.__dataset_root, self.__scenes_root, split)
+        self.__scene_ids = self.__once.get_scenes_in_split(split)
+
+    @property
+    def dataroot(self) -> str:
+        return self.__dataset_root
 
     @property
     def scenes(self) -> list:
-        return self.__scenes
+        return list(self.__scene_ids)
 
     def get_scene_iterator(self, scene_id: str) -> Dataset.SceneIterator:
-        assert scene_id in self.__scenes_lookup
+        assert scene_id in self.__scene_ids, \
+            f"Unknown scene id {scene_id}"
 
-        return OnceSceneIterator(scene=self.__scenes_lookup[scene_id],
+        return OnceSceneIterator(scene_id=scene_id,
                                  once=self.__once)
 
-    def load_frame_patcher(self, frame_id: str,
-                                 scene_id: str) -> FramePatcher:
+    def load_frame_patcher(self,
+                           scene_id: str,
+                           frame_id: str) -> FramePatcher:
+        assert scene_id in self.__scene_ids, \
+            f"Unknown scene id {scene_id}"
 
-        return OnceFramePatcher.load(seq_id=self.__scenes_lookup[scene_id],
+        return OnceFramePatcher.load(seq_id=scene_id,
                                      frame_id=frame_id,
                                      once=self.__once)
 
@@ -44,7 +68,10 @@ class OnceDataset(Dataset):
                                      scene_id: str,
                                      frame_id: str,
                                      frame_point_cloud: np.ndarray) -> Optional[str]:
-        path_to_save = self.__get_patched_folder_and_filename(self.__scenes_lookup[scene_id], frame_id)
+        assert scene_id in self.__scene_ids, \
+            f"Unknown scene id {scene_id}"
+
+        path_to_save = self.__get_patched_folder_and_filename(scene_id, frame_id)
 
         dir_path = os.path.dirname(path_to_save)
 
@@ -58,20 +85,22 @@ class OnceDataset(Dataset):
 
     def can_serialise_frame_point_cloud(self,
                                         scene_id: str,
-                                        frame_id: str) ->bool:
-        path_to_save = self.__get_patched_folder_and_filename(self.__scenes_lookup[scene_id], frame_id)
+                                        frame_id: str) -> bool:
+        assert scene_id in self.__scene_ids, \
+            f"Unknown scene id {scene_id}"
+
+        path_to_save = self.__get_patched_folder_and_filename(scene_id, frame_id)
 
         # We can serialise point cloud if there is no point cloud saved.
         return not os.path.exists(path_to_save)
 
-    def dataroot(self):
-        return self.__dataroot
-
     def get_frame_point_cloud(self,
                               scene_id: str,
                               frame_id: str) -> np.ndarray:
+        assert scene_id in self.__scene_ids, \
+            f"Unknown scene id {scene_id}"
 
-        return get_frame_point_cloud(seq_id=self.__scenes_lookup[scene_id],
+        return get_frame_point_cloud(scene_id=scene_id,
                                      frame_id=frame_id,
                                      once=self.__once)
 
@@ -80,7 +109,10 @@ class OnceDataset(Dataset):
                                  frame_id: str,
                                  instance_id: str,
                                  frame_point_cloud: np.ndarray) -> np.ndarray:
-        return get_instance_point_cloud(seq_id=self.__scenes_lookup[scene_id],
+        assert scene_id in self.__scene_ids, \
+            f"Unknown scene id {scene_id}"
+
+        return get_instance_point_cloud(seq_id=scene_id,
                                         frame_id=frame_id,
                                         instance_id=instance_id,
                                         frame_point_cloud=frame_point_cloud,
@@ -88,6 +120,6 @@ class OnceDataset(Dataset):
 
     def __get_patched_folder_and_filename(self, scene_id: str, frame_id: str):
         folder_name = f"{scene_id}_patched"
-        file_name = f"{frame_id}.bin"
+        patched_filename = f"{frame_id}.bin"
 
-        return os.path.join(self.__dataroot, 'data', folder_name, 'lidar_roof', file_name)
+        return os.path.join(self.__dataset_root, 'data', folder_name, 'lidar_roof', patched_filename)

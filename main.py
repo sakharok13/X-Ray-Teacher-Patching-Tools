@@ -5,6 +5,7 @@ from src.datasets.dataset import Dataset
 from src.utils.dataset_helper import group_instances_across_frames
 from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
 from src.datasets.waymo.waymo_dataset import WaymoDataset
+from src.datasets.once.once_dataset import OnceDataset
 
 from src.utils.visualisation_helper import visualise_points_cloud
 
@@ -14,16 +15,19 @@ def __create_dataset(dataset: str) -> Dataset:
         return NuscenesDataset(version='v1.0-mini', dataroot='./temp/nuscenes')
     elif dataset == 'waymo':
         return WaymoDataset(dataset_root='./temp/open-waymo')
+    elif dataset == 'once':
+        return OnceDataset(dataset_root='./temp/once', split="raw_small")
     else:
         raise Exception(f"Unknown dataset {dataset}")
 
 
 def main():
-    dataset = __create_dataset('waymo')
+    dataset = __create_dataset('once')
 
-    print('Scenes:', dataset.scenes)
+    print('Dataset root:', dataset.dataroot)
+    print('Detected scenes:', dataset.scenes)
 
-    scene_id = 'training_segment-10023947602400723454_1120_000_1140_000_with_camera_labels'
+    scene_id = '000013'
 
     grouped_instances = group_instances_across_frames(scene_id=scene_id, dataset=dataset)
 
@@ -41,7 +45,7 @@ def main():
                                                     dataset=dataset)
     default_accumulation_strategy = DefaultAccumulatorStrategy()
 
-    frame_id = 'training_segment-10023947602400723454_1120_000_1140_000_with_camera_labels_078'
+    frame_id = '1616013899200'
     instance_ids = set()
 
     for instance_id, frames in grouped_instances.items():

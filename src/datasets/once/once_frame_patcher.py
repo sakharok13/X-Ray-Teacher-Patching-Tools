@@ -4,7 +4,7 @@ import numpy as np
 
 from src.datasets.once.once_utils import ONCE
 from src.datasets.frame_patcher import FramePatcher
-from src.datasets.once.once_utils import get_frame_point_cloud, reapply_frame_transformation, get_frame_instance_ids
+from src.datasets.once.once_utils import get_frame_point_cloud, reapply_frame_transformation, get_frame_instance_ids, get_pickle_data, build_frame_id_to_annotations_lookup
 from src.utils.geometry_utils import points_in_box
 
 
@@ -13,14 +13,17 @@ class OnceFramePatcher(FramePatcher):
     """
 
     def __init__(self,
-                 seq_id: str,
+                 sсene_id: str,
                  frame_id: str,
                  frame_point_cloud: np.ndarray,
                  once: ONCE):
-        self.__seq_id = seq_id
+        self.__scene_id = sсene_id
         self.__frame_id = frame_id
         self.__frame_point_cloud = frame_point_cloud
         self.__once = once
+
+        self.__pickle_data = get_pickle_data(self.__once.dataset_root, self.__scene_id)
+        self.__frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(self.__pickle_data)
 
     @classmethod
     def load(cls,
@@ -37,10 +40,10 @@ class OnceFramePatcher(FramePatcher):
         :return: 'OnceFramePatcher'
             A constructed instance.
         """
-        lidar_point_cloud = get_frame_point_cloud(seq_id=seq_id,
+        lidar_point_cloud = get_frame_point_cloud(scene_id=seq_id,
                                                   frame_id=frame_id,
                                                   once=once)
-        return OnceFramePatcher(seq_id=seq_id,
+        return OnceFramePatcher(sсene_id=seq_id,
                                 frame_id=frame_id,
                                 frame_point_cloud=lidar_point_cloud,
                                 once=once)
@@ -77,10 +80,10 @@ class OnceFramePatcher(FramePatcher):
     def patch_instance(self,
                        instance_id: str,
                        point_cloud: np.ndarray):
-        annotations = self.__once.get_frame_anno(
-            self.__seq_id, self.__frame_id)
+        frame_descriptor = self.__frame_id_to_annotations_lookup[self.__frame_id]
+        annotations = frame_descriptor['annos']
 
-        ids = get_frame_instance_ids(self.__seq_id, self.__frame_id, self.__once)
+        ids = get_frame_instance_ids(self.__scene_id, self.__frame_id, self.__once)
 
         instance_index = ids.index(instance_id)
         boxes = annotations['boxes_3d']
@@ -101,8 +104,7 @@ class OnceFramePatcher(FramePatcher):
 
         # Put the object back into the scene.
         point_cloud = reapply_frame_transformation(point_cloud=point_cloud,
-                                                   seq_id=self.__seq_id,
-                                                   frame_id=self.__frame_id,
+                                                   frame_descriptor=frame_descriptor,
                                                    instance_id=instance_id,
                                                    once=self.__once)
 

@@ -1,11 +1,13 @@
 import json
 import functools
+import os
 import os.path as osp
 from collections import defaultdict
 import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 import time
+import pickle
 
 
 def split_info_loader_helper(func):
@@ -119,7 +121,6 @@ class ONCE(object):
         for attr in attr_list:
             if getattr(self, '{}_split_list'.format(attr)) is not None:
                 split_list = getattr(self, '{}_split_list'.format(attr))
-                split_list = {'000092'}  # REMOVE BEFORE COMMITTING
                 info_dict = getattr(self, '{}_info'.format(attr))
                 for seq in split_list:
                     anno_file_path = osp.join(
@@ -446,16 +447,11 @@ class ONCE(object):
 def get_frame_instance_ids(scene_id, frame_id, once):
     instance_ids = []
 
-    anno_json = get_annotations_tracked_file_name(once.data_folder, scene_id)
-    with open(anno_json, 'r') as json_file:
-        data = json.load(json_file)
+    pickle_data = get_pickle_data(once.dataset_root, scene_id)
 
-        if 'frames' in data and frame_id in {
-                frame.get('frame_id') for frame in data['frames']}:
-            frame_info = next(
-                frame for frame in data['frames'] if frame.get('frame_id') == frame_id)
-            if 'annos' in frame_info:
-                instance_ids = frame_info['annos']['instance_ids']
+    if frame_id in pickle_data:
+        if 'annos' in pickle_data[frame_id]:
+            instance_ids = pickle_data[frame_id]['annos']['instance_ids']
 
     return instance_ids
 
@@ -491,7 +487,9 @@ def get_instance_point_cloud(
 
 
     instance_ids = get_frame_instance_ids(seq_id, frame_id, once)
-    annotations = once.get_frame_anno(seq_id, frame_id)
+    pickle_data = get_pickle_data(once.dataset_root, seq_id)
+    frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
+    annotations = frame_id_to_annotations_lookup['frame_id']
 
     if instance_id in instance_ids:
         box_index = instance_ids.index(instance_id)
@@ -522,6 +520,7 @@ def get_instance_point_cloud(
         raise ValueError(
             f"Instance ID {instance_id} is not present in the instance_ids list.")
 
+
 def transform_points(points, cx, cy, cz, l, w, h, theta):
     theta_rad = -theta  # rotation transform matrix (rotate to minus! theta)
     R = np.array([[np.cos(theta_rad), -np.sin(theta_rad), 0],
@@ -541,6 +540,7 @@ def transform_points(points, cx, cy, cz, l, w, h, theta):
     points_inside = np.column_stack((transformed_points, intensity))
 
     return points_inside
+
 
 def get_annotations_file_name(datafolder_root, seq_id):
     return datafolder_root + '/' + str(seq_id) + '/' + str(seq_id) + '.json'
@@ -562,3 +562,44 @@ def reapply_frame_transformation(point_cloud, seq_id, frame_id, instance_id,  on
 
     return moved_cloud
 
+
+def get_pickle_data(dataset_root, scene_id):
+    root_files = [f for f in os.listdir(dataset_root) if f.endswith(".pkl")]
+    scene_path = osp.join(dataset_root, 'data', scene_id)
+
+    for root_file in root_files:
+        if scene_id in root_file:
+            pickle_path = os.path.join(dataset_root, root_file)
+            with open(pickle_path, 'rb') as f:
+                pickle_data = pickle.load(f)
+            return pickle_data
+
+    if os.path.exists(scene_path):
+        scene_files = [f for f in os.listdir(scene_path) if f.endswith(".pkl")]
+        if scene_files:
+            pickle_path = os.path.join(scene_path, scene_files[0])
+            with open(pickle_path, 'rb') as f:
+                pickle_data = pickle.load(f)
+            return pickle_data
+
+    raise ValueError("No pickle file found in both dataset root and scene folder.")
+
+
+def aggregate_frames_in_sequences(pickle_data):
+    sequences_to_frames_lookup = {}
+    for data in pickle_data:
+        sequence_id = data['sequence_id']
+        frame_id = data['frame_id']
+        if sequence_id not in sequences_to_frames_lookup:
+            sequences_to_frames_lookup[sequence_id] = []
+        sequences_to_frames_lookup[sequence_id].append(frame_id)
+    return sequences_to_frames_lookup
+
+
+def build_frame_id_to_annotations_lookup(pickle_data):
+    id_to_annotations_lookup = {}
+    for data in pickle_data:
+        frame_id = data['frame_id']
+        if frame_id not in id_to_annotations_lookup:
+            id_to_annotations_lookup[frame_id] = data
+    return id_to_annotations_lookup

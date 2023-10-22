@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import os.path as osp
 import numpy as np
 
 from typing import Optional
@@ -19,7 +20,7 @@ class OnceDataset(Dataset):
         self.__once = ONCE(dataroot, split)
         self.__once._collect_basic_infos(split)
         self.__dataroot = dataroot
-        self.__scenes = os.listdir('./temp/ONCE/data')
+        self.__scenes = os.listdir(osp.join(self.__dataroot, 'data'))   # ['000013']
         self.__scenes_lookup = {str(i): scene for i, scene in enumerate(self.__scenes)}
 
     @property
@@ -54,6 +55,14 @@ class OnceDataset(Dataset):
                                    point_cloud=frame_point_cloud)
 
         return path_to_save
+
+    def can_serialise_frame_point_cloud(self,
+                                        scene_id: str,
+                                        frame_id: str):
+        return True
+
+    def dataroot(self):
+        return self.__dataroot
 
     def get_frame_point_cloud(self,
                               scene_id: str,

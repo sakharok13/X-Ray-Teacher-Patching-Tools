@@ -1,4 +1,4 @@
-# CourseWork3DDetection
+# Patching Tools for X-Ray Teacher object detection
 
 
 ## Install NuScenes Mini Dataset

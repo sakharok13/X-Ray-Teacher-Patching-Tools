@@ -23,8 +23,6 @@ def main():
     else:
         bboxes = []
 
-    print(bboxes)
-
     lidar_point_clouds = np.fromfile(lidar_data_path, dtype=np.float32).reshape(-1, 4).T
     visualise_points_cloud(lidar_point_clouds.T,
                            bboxes=bboxes,

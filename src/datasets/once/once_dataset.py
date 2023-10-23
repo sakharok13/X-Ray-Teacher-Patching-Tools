@@ -10,7 +10,7 @@ from src.datasets.dataset import Dataset
 from src.datasets.frame_patcher import FramePatcher
 from src.datasets.once.once_scene_iterator import OnceSceneIterator
 from src.datasets.once.once_frame_patcher import OnceFramePatcher
-from src.datasets.once.once_utils import ONCE, get_frame_point_cloud, get_instance_point_cloud
+from src.datasets.once.once_utils import ONCE, get_instance_point_cloud
 
 
 class OnceDataset(Dataset):
@@ -60,7 +60,7 @@ class OnceDataset(Dataset):
         assert scene_id in self.__scene_ids, \
             f"Unknown scene id {scene_id}"
 
-        return OnceFramePatcher.load(seq_id=scene_id,
+        return OnceFramePatcher.load(scene_id=scene_id,
                                      frame_id=frame_id,
                                      once=self.__once)
 
@@ -100,9 +100,8 @@ class OnceDataset(Dataset):
         assert scene_id in self.__scene_ids, \
             f"Unknown scene id {scene_id}"
 
-        return get_frame_point_cloud(scene_id=scene_id,
-                                     frame_id=frame_id,
-                                     once=self.__once)
+        return self.__once.get_frame_point_cloud(scene_id=scene_id,
+                                                 frame_id=frame_id)
 
     def get_instance_point_cloud(self,
                                  scene_id: str,

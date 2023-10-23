@@ -4,7 +4,7 @@ import numpy as np
 
 from src.datasets.once.once_utils import ONCE
 from src.datasets.frame_patcher import FramePatcher
-from src.datasets.once.once_utils import get_frame_point_cloud, reapply_frame_transformation, get_frame_instance_ids, get_pickle_data, build_frame_id_to_annotations_lookup
+from src.datasets.once.once_utils import reapply_frame_transformation, get_frame_instance_ids, get_pickle_data, build_frame_id_to_annotations_lookup
 from src.utils.geometry_utils import points_in_box
 
 
@@ -27,11 +27,11 @@ class OnceFramePatcher(FramePatcher):
 
     @classmethod
     def load(cls,
-             seq_id: str,
+             scene_id: str,
              frame_id: str,
              once: ONCE) -> OnceFramePatcher:
         """Creates OnceFramePatcher instance.
-        :param seq_id: str
+        :param scene_id: str
             ID of a scene.
         :param frame_id: str
             ID of a frame.
@@ -40,12 +40,11 @@ class OnceFramePatcher(FramePatcher):
         :return: 'OnceFramePatcher'
             A constructed instance.
         """
-        lidar_point_cloud = get_frame_point_cloud(scene_id=seq_id,
-                                                  frame_id=frame_id,
-                                                  once=once)
-        return OnceFramePatcher(sсene_id=seq_id,
+        frame_point_cloud = once.get_frame_point_cloud(scene_id=scene_id,
+                                                       frame_id=frame_id)
+        return OnceFramePatcher(sсene_id=scene_id,
                                 frame_id=frame_id,
-                                frame_point_cloud=lidar_point_cloud,
+                                frame_point_cloud=frame_point_cloud,
                                 once=once)
 
     @classmethod

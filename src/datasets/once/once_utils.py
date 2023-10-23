@@ -1,12 +1,10 @@
 import json
-import functools
 import os
+import pickle
 from collections import defaultdict
+
 import cv2
 import numpy as np
-from scipy.spatial.transform import Rotation
-import time
-import pickle
 
 
 class ONCE(object):
@@ -65,7 +63,6 @@ class ONCE(object):
         self.__scenes_by_split_lookup = {s: self.__load_scenes_in_split(s) for s in self.supported_splits}
 
         self.__collect_basic_infos([split])
-        # self.__collect_basic_infos_tracked([split])
 
     def get_scenes_in_split(self, split: str) -> set:
         assert split in self.supported_splits
@@ -124,110 +121,17 @@ class ONCE(object):
                             'distortion': np.array(anno_file['calib'][cam_name]['distortion'])
                         }
                     if 'annos' in frame_anno.keys():
-                        info_dict[seq][frame_anno['frame_id']
-                        ]['annos'] = frame_anno['annos']
+                        info_dict[seq][frame_anno['frame_id']]['annos'] = frame_anno['annos']
                 info_dict[seq]['frame_list'] = sorted(frame_list)
 
-    def get_frame_anno(self,
-                       scene_id: str,
-                       frame_id: str):
-        split_name = self.__find_split_name(scene_id)
-        frame_info = getattr(self, '{}_info'.format(split_name))[scene_id][frame_id]
-        assert 'annos' in frame_info
-        return frame_info['annos']
-        return None
-
-    def load_point_cloud(self, seq_id, frame_id):
-        bin_path = os.path.join(
-            self.data_folder,
-            seq_id,
-            'lidar_roof',
-            '{}.bin'.format(frame_id))
-        points = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
-        return points
-
-    def load_image(self, seq_id, frame_id, cam_name):
-        cam_path = os.path.join(
-            self.data_folder,
-            seq_id,
-            cam_name,
-            '{}.jpg'.format(frame_id))
-        img_buf = cv2.cvtColor(cv2.imread(cam_path), cv2.COLOR_BGR2RGB)
-        return img_buf
-
-    def undistort_image(self, seq_id, frame_id):
-        img_list = []
-        split_name = self.__find_split_name(seq_id)
-        frame_info = getattr(self, '{}_info'.format(split_name))[
-            seq_id][frame_id]
-        for cam_name in self.__class__.camera_names:
-            img_buf = self.load_image(seq_id, frame_id, cam_name)
-            cam_calib = frame_info['calib'][cam_name]
-            h, w = img_buf.shape[:2]
-            cv2.getOptimalNewCameraMatrix(cam_calib['cam_intrinsic'],
-                                          cam_calib['distortion'],
-                                          (w, h), alpha=0.0, newImgSize=(w, h))
-            img_list.append(
-                cv2.undistort(
-                    img_buf,
-                    cam_calib['cam_intrinsic'],
-                    cam_calib['distortion'],
-                    newCameraMatrix=cam_calib['cam_intrinsic']))
-        return img_list
-
-    def undistort_image_v2(self, seq_id, frame_id):
-        img_list = []
-        new_cam_intrinsic_dict = dict()
-        split_name = self.__find_split_name(seq_id)
-        frame_info = getattr(self, '{}_info'.format(split_name))[
-            seq_id][frame_id]
-        for cam_name in self.__class__.camera_names:
-            img_buf = self.load_image(seq_id, frame_id, cam_name)
-            cam_calib = frame_info['calib'][cam_name]
-            h, w = img_buf.shape[:2]
-            new_cam_intrinsic, _ = cv2.getOptimalNewCameraMatrix(
-                cam_calib['cam_intrinsic'], cam_calib['distortion'], (w, h), alpha=0.0, newImgSize=(
-                    w, h))
-            img_list.append(cv2.undistort(img_buf, cam_calib['cam_intrinsic'],
-                                          cam_calib['distortion'],
-                                          newCameraMatrix=new_cam_intrinsic))
-            new_cam_intrinsic_dict[cam_name] = new_cam_intrinsic
-        return img_list, new_cam_intrinsic_dict
-
-    def is_inside_3d_box(self, point, cx, cy, cz, l, w, h, theta):
-        theta_deg = np.degrees(theta)
-        # rotation transform matrix (rotate to minus! theta)
-        R = np.array([[np.cos(-theta), -np.sin(-theta), 0],
-                      [np.sin(-theta), np.cos(-theta), 0],
-                      [0, 0, 1]])
-        # to box coordinates
-        translated_point = np.array(
-            [point[0], point[1], point[2]]) - np.array([cx, cy, cz])
-
-        rotated_point = np.dot(R, translated_point)
-        ifinside = (-l / 2 <= rotated_point[0] <= l / 2) and (-w / 2 <=
-                                                              rotated_point[1] <= w / 2) and (
-                           -h / 2 <= rotated_point[2] <= h / 2)
-        return ifinside, np.hstack([rotated_point, point[3]])
-
-    def move_back_to_frame_coordinates_old(self, point, box):
-        cx, cy, cz, l, w, h, theta = box
-        theta_deg = np.degrees(theta)
-        # rotation transform matrix (rotate to plus! theta)
-        R = np.array([[np.cos(theta), -np.sin(theta), 0],
-                      [np.sin(theta), np.cos(theta), 0],
-                      [0, 0, 1]])
-        # to frame coordinates
-        translated_point = np.array(
-            [point[0], point[1], point[2]]) + np.array([cx, cy, cz])
-
-        rotated_point = np.dot(R, translated_point)
-
-        return np.hstack([rotated_point, point[3]])
+    def get_frame_point_cloud(self,
+                              scene_id: str,
+                              frame_id: str):
+        bin_path = os.path.join(self.data_folder, scene_id, 'lidar_roof', f"{frame_id}.bin")
+        return np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4).T
 
     def move_back_to_frame_coordinates(self, points, box):
         cx, cy, cz, l, w, h, theta = box
-        theta_deg = np.degrees(theta)
         points = points.T
 
         # rotation transform matrix (rotate to plus! theta)
@@ -258,13 +162,6 @@ def get_frame_instance_ids(scene_id, frame_id, once, frame_id_to_annotations_loo
             instance_ids = frame_id_to_annotations_lookup[frame_id]['annos']['instance_ids']
 
     return instance_ids
-
-
-def get_frame_point_cloud(scene_id: str,
-                          frame_id: str,
-                          once: ONCE):
-    frame_cloud = once.load_point_cloud(scene_id, frame_id)
-    return frame_cloud.T
 
 
 def get_instance_point_cloud(

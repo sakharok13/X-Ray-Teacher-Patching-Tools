@@ -5,9 +5,11 @@ import numpy as np
 import open3d as o3d
 import multiprocessing
 from functools import partial
+import sys 
+import time
 
 from tqdm import tqdm
-
+sys.path.append(os.path.join(os.path.dirname(__file__), './gedi'))
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
 from src.accumulation.gedi_accumulator_strategy import GediAccumulatorStrategy
@@ -28,8 +30,25 @@ def __patch_scene(scene_id: str,
                   accumulation_strategy: AccumulationStrategy,
                   dataset: Dataset,
                   export_instances: bool,
-                  export_frames: bool) -> bool:
+                  export_frames: bool,
+                  gedi_counter):
+    if isinstance(accumulation_strategy, GediAccumulatorStrategy):
+        gpu_id = -1
+        while gpu_id == -1:
+            for i in range(torch.cuda.device_count()):
+                if gedi_counter[i] < 4:
+                    gpu_id = i
+                    gedi_counter[i] += 1
+                    break
+            if gpu_id == -1:
+                time.sleep(1)  # wait for a GPU to be available
+
+        torch.cuda.set_device(gpu_id)
+        logging.info(f"Running GediAccumulatorStrategy on GPU {gpu_id}")
+
+
     logging.info(f"[Scene {scene_id}] Starting...")
+    
     grouped_instances = group_instances_across_frames(scene_id=scene_id, dataset=dataset)
 
     point_cloud_accumulator = PointCloudAccumulator(step=1,
@@ -118,19 +137,23 @@ def __patch_scene(scene_id: str,
         else:
             logging.error(f"[Scene {scene_id}] There was an error saving the point cloud for frame {frame_id}")
 
+
     logging.info(f"[Scene {scene_id}] Wrapping up.")
+            
+    # If the strategy is GediAccumulatorStrategy, decrease the counter
+    if isinstance(accumulation_strategy, GediAccumulatorStrategy):
+        gedi_counter[gpu_id] -= 1
 
     # Return OK status when finished processing.
     return True
-
 
 def __process_dataset(dataset: Dataset,
                       accumulation_strategy: AccumulationStrategy,
                       export_instances: bool,
                       export_frames: bool,
-                      num_workers: int):
-    assert f"num_workers should be positive {num_workers}", \
-        num_workers > 0
+                      num_workers: int,
+                      gedi_counter):
+    assert num_workers > 0, "num_workers should be positive"
 
     print(f"Processing dataset from: {dataset.dataroot}")
     logging.info(f"Processing dataset from: {dataset.dataroot}")
@@ -140,14 +163,16 @@ def __process_dataset(dataset: Dataset,
 
     patch_scene = partial(
         __patch_scene,
-        dataset=dataset,
         accumulation_strategy=accumulation_strategy,
+        dataset=dataset,
         export_instances=export_instances,
-        export_frames=export_frames
+        export_frames=export_frames,
+        gedi_counter=gedi_counter
     )
 
-    with multiprocessing.Pool(num_workers) as p:
+    with Pool(num_workers) as p:
         list(tqdm(p.imap(patch_scene, scenes), total=scenes_count))
+
 
 
 accumulator_strategies = {
@@ -169,8 +194,8 @@ def parse_arguments():
     parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count(), help='Count of parallel workers.')
     return parser.parse_args()
 
-
 def main():
+    multiprocessing.set_start_method('spawn', force=True)
     args = parse_arguments()
 
     logging.disabled = not args.enable_logging
@@ -188,11 +213,17 @@ def main():
 
     accumulator_strategy = accumulator_strategies[args.strategy]
 
-    __process_dataset(dataset=dataset,
-                      accumulation_strategy=accumulator_strategy,
-                      export_instances=args.instances,
-                      export_frames=args.frames,
-                      num_workers=args.num_workers)
+    with Manager() as manager:
+        gedi_counter = manager.dict()
+        for i in range(torch.cuda.device_count()):
+            gedi_counter[i] = 0
+
+        __process_dataset(dataset=dataset,
+                          accumulation_strategy=accumulator_strategy,
+                          export_instances=args.instances,
+                          export_frames=args.frames,
+                          num_workers=args.num_workers,
+                          gedi_counter=gedi_counter)
 
 
 if __name__ == '__main__':

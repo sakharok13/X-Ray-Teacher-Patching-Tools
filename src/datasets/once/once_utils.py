@@ -27,12 +27,12 @@ class ONCE(object):
     """
 
     supported_splits = [
-        'raw_small',
-        'raw_medium',
-        'raw_large',
-        'train',
-        'test',
-        'val',
+        'raw_small'
+        # 'raw_medium',
+        # 'raw_large',
+        # 'train',
+        # 'test',
+        # 'val',
     ]
 
     camera_names = [

@@ -3,7 +3,7 @@ import open3d as o3d
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.utils.gedi_registration import run_point_cloud_registration_o3d
 from src.utils.o3d_helper import convert_to_o3d_pointcloud, convert_to_numpy_array
-from gedi.gedi import GeDi
+from gedi import GeDi
 
 
 class GediAccumulatorStrategy(AccumulationStrategy):

@@ -58,16 +58,7 @@ class OnceFramePatcher(FramePatcher):
         if not path.endswith('.bin'):
             raise Exception(f"Supports only bin files, got: {path}")
 
-        points_count = point_cloud.shape[1]
-
-        np.append(
-            point_cloud,
-            np.zeros(
-                shape=(
-                    1,
-                    points_count)),
-            axis=0).T.astype(
-                dtype=np.float32).tofile(path)
+        point_cloud.T.astype(dtype=np.float32).tofile(path)
 
     @property
     def frame_id(self) -> str:

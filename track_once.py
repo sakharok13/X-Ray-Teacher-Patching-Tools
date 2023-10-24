@@ -38,7 +38,7 @@ def track_instances(scene_id: str,
     scene_annotations = []
     next_frame_data = []
 
-    for frame_id, next_frame_id in tqdm(current_and_next_iterator, desc=f"Sequence {scene_id}", total=len(frames) - 1):
+    for frame_id, next_frame_id in tqdm(current_and_next_iterator, desc=f"Sequence {scene_id}", total=len(frames)):
         current_frame_data = frame_id_to_annotations_lookup[frame_id]
         current_annotations = current_frame_data['annos']
 

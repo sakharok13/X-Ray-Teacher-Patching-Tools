@@ -4,6 +4,7 @@ import os
 import numpy as np
 import open3d as o3d
 import multiprocessing
+from multiprocessing import Manager, Pool
 from functools import partial
 import sys
 import time

@@ -26,11 +26,12 @@ def track_instances(seq_id,
                     dataset_root,
                     sequences_to_frames_lookup,
                     frame_id_to_annotations_lookup,
-                    outfile):
+                    outfile,
+                    overwrite):
     instances_dict = {}
-    outpath = osp.join(dataset_root, outfile + '_' + str(seq_id) + '.pkl')
+    outpath = os.path.normpath(osp.join(dataset_root, 'tracked', f"{outfile}_{seq_id}.pkl"))
 
-    if os.path.exists(outpath):
+    if os.path.exists(outpath) and not overwrite:
         print(f"Skipping sequence: {seq_id}")
         return
 
@@ -38,6 +39,7 @@ def track_instances(seq_id,
     current_and_next_iterator = zip(frames, frames[1:])
 
     scene_annotations = []
+    next_frame_data = []
 
     for frame_id, next_frame_id in tqdm(current_and_next_iterator, desc=f"Sequence {seq_id}", total=len(frames) - 1):
         current_frame_data = frame_id_to_annotations_lookup[frame_id]
@@ -71,7 +73,6 @@ def track_instances(seq_id,
 
             # fill instance ids for the first frame with annotations
             current_frame_data["annos"]["instance_ids"] = first_instance_ids
-            scene_annotations.append(current_frame_data)
 
         next_instance_ids = []
 
@@ -122,6 +123,8 @@ def track_instances(seq_id,
         next_frame_data["annos"]["instance_ids"] = next_instance_ids
         scene_annotations.append(current_frame_data)
 
+    scene_annotations.append(next_frame_data)
+
     try:
         with open(outpath, 'wb') as destination_file:
             pickle.dump(scene_annotations, destination_file)
@@ -133,7 +136,8 @@ def parallel_process(dataset_root,
                      scene,
                      sequences_to_frames_lookup,
                      frame_id_to_annotations_lookup,
-                     outfile):
+                     outfile,
+                     overwrite):
     num_workers = multiprocessing.cpu_count()
     print(f"Detected CPUs: {num_workers}")
 
@@ -143,6 +147,7 @@ def parallel_process(dataset_root,
         sequences_to_frames_lookup=sequences_to_frames_lookup,
         frame_id_to_annotations_lookup=frame_id_to_annotations_lookup,
         outfile=outfile,
+        overwrite=overwrite
     )
 
     with multiprocessing.Pool(num_workers) as p:
@@ -150,12 +155,12 @@ def parallel_process(dataset_root,
 
 
 if __name__ == '__main__':
-    dataset_root = "./"
+    dataset_root = "D:/"  # "./"
+    overwrite = True
     scenes_path = osp.join(dataset_root, 'data')
     scenes = sorted(os.listdir(scenes_path))
 
     path = osp.join(dataset_root, 'once_raw_small.pkl')
-    outpath = osp.join(dataset_root, 'once_raw_small_track.pkl')
     with open(path, 'rb') as file:
         pickle_data = pickle.load(file)
 
@@ -163,8 +168,13 @@ if __name__ == '__main__':
     frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
     outfile = 'once_raw_small_track'
 
+    folder_path = osp.join(dataset_root, 'tracked')
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
     parallel_process(dataset_root,
                      scenes,
                      sequences_to_frames_lookup,
                      frame_id_to_annotations_lookup,
-                     outfile)
+                     outfile,
+                     overwrite)

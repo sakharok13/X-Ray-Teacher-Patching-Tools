@@ -171,7 +171,7 @@ def __process_dataset(dataset: Dataset,
     )
 
     with Pool(num_workers) as p:
-        list(tqdm(p.imap(patch_scene, scenes), total=scenes_count))
+        list(tqdm(p.imap_unordered(patch_scene, scenes), total=scenes_count))
 
 
 

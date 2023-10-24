@@ -1,12 +1,13 @@
+import argparse
 import os
-import os.path as osp
+import numpy as np
 import multiprocessing
 import pickle
-from functools import partial
-from src.datasets.once.once_utils import aggregate_frames_in_sequences, build_frame_id_to_annotations_lookup
 
-import numpy as np
 from tqdm import tqdm
+from functools import partial
+
+from src.datasets.once.once_utils import aggregate_frames_in_sequences, build_frame_id_to_annotations_lookup
 
 
 class Instance:
@@ -19,27 +20,25 @@ class Instance:
         self.boxes_3d = []
 
 
-
-
-
-def track_instances(seq_id,
-                    dataset_root,
-                    sequences_to_frames_lookup,
-                    frame_id_to_annotations_lookup,
-                    outfile):
+def track_instances(scene_id: str,
+                    sequences_to_frames_lookup: dict,
+                    frame_id_to_annotations_lookup: dict,
+                    save_dir: str,
+                    force_overwrite: bool):
     instances_dict = {}
-    outpath = osp.join(dataset_root, outfile + '_' + str(seq_id) + '.pkl')
+    output_file_path = os.path.normpath(os.path.join(save_dir, f"once_raw_small_{scene_id}.pkl"))
 
-    if os.path.exists(outpath):
-        print(f"Skipping sequence: {seq_id}")
+    if not force_overwrite and os.path.exists(output_file_path):
+        print(f"Skipping sequence: {scene_id}")
         return
 
-    frames = sequences_to_frames_lookup[seq_id]
+    frames = sequences_to_frames_lookup[scene_id]
     current_and_next_iterator = zip(frames, frames[1:])
 
     scene_annotations = []
+    next_frame_data = []
 
-    for frame_id, next_frame_id in tqdm(current_and_next_iterator, desc=f"Sequence {seq_id}", total=len(frames) - 1):
+    for frame_id, next_frame_id in tqdm(current_and_next_iterator, desc=f"Sequence {scene_id}", total=len(frames) - 1):
         current_frame_data = frame_id_to_annotations_lookup[frame_id]
         current_annotations = current_frame_data['annos']
 
@@ -61,7 +60,7 @@ def track_instances(seq_id,
                 instance = Instance(instance_id=len(instances_dict),
                                     tracking=[],
                                     category=category,
-                                    scene_id=seq_id,
+                                    scene_id=scene_id,
                                     frame_ids=[],
                                     boxes_3d=[])
                 instance.frame_ids.append(frame_id)
@@ -71,7 +70,6 @@ def track_instances(seq_id,
 
             # fill instance ids for the first frame with annotations
             current_frame_data["annos"]["instance_ids"] = first_instance_ids
-            scene_annotations.append(current_frame_data)
 
         next_instance_ids = []
 
@@ -109,7 +107,7 @@ def track_instances(seq_id,
                 new_instance = Instance(instance_id=len(instances_dict),
                                         tracking=[],
                                         category=next_category,
-                                        scene_id=seq_id,
+                                        scene_id=scene_id,
                                         frame_ids=[],
                                         boxes_3d=[])
 
@@ -122,49 +120,67 @@ def track_instances(seq_id,
         next_frame_data["annos"]["instance_ids"] = next_instance_ids
         scene_annotations.append(current_frame_data)
 
+    scene_annotations.append(next_frame_data)
+
     try:
-        with open(outpath, 'wb') as destination_file:
+        with open(output_file_path, 'wb') as destination_file:
             pickle.dump(scene_annotations, destination_file)
     except FileNotFoundError:
         print(f"Source file not found.")
 
 
-def parallel_process(dataset_root,
-                     scene,
+def parallel_process(scene,
                      sequences_to_frames_lookup,
                      frame_id_to_annotations_lookup,
-                     outfile):
+                     save_dir,
+                     force_overwrite):
     num_workers = multiprocessing.cpu_count()
     print(f"Detected CPUs: {num_workers}")
 
     process_single_sequence = partial(
         track_instances,
-        dataset_root=dataset_root,
         sequences_to_frames_lookup=sequences_to_frames_lookup,
         frame_id_to_annotations_lookup=frame_id_to_annotations_lookup,
-        outfile=outfile,
+        save_dir=save_dir,
+        force_overwrite=force_overwrite
     )
 
     with multiprocessing.Pool(num_workers) as p:
         list(tqdm(p.imap(process_single_sequence, scene), total=len(scene)))
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='patch scene arguments')
+    parser.add_argument('--dataroot', type=str, default=None, help='Data root location.')
+    parser.add_argument('--save_dir', type=str, default='./out', help='Directory to save tracked files.')
+    parser.add_argument('--force_overwrite', action='store_true', help='Overwrite saved files.')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    dataset_root = "./"
-    scenes_path = osp.join(dataset_root, 'data')
+    args = parse_arguments()
+
+    dataset_root = args.dataroot
+    save_dir_path = args.save_dir
+    overwrite = args.force_overwrite
+
+    assert dataset_root is not None, \
+        "Dataset root should be specified."
+
+    os.makedirs(save_dir_path, exist_ok=True)
+
+    scenes_path = os.path.join(dataset_root, 'data')
     scenes = sorted(os.listdir(scenes_path))
 
-    path = osp.join(dataset_root, 'once_raw_small.pkl')
-    outpath = osp.join(dataset_root, 'once_raw_small_track.pkl')
+    path = os.path.join(dataset_root, 'once_raw_small.pkl')
     with open(path, 'rb') as file:
         pickle_data = pickle.load(file)
 
     sequences_to_frames_lookup = aggregate_frames_in_sequences(pickle_data)
     frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
-    outfile = 'once_raw_small_track'
 
-    parallel_process(dataset_root,
-                     scenes,
+    parallel_process(scenes,
                      sequences_to_frames_lookup,
                      frame_id_to_annotations_lookup,
-                     outfile)
+                     save_dir_path,
+                     overwrite)

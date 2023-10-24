@@ -8,6 +8,7 @@ from multiprocessing import Manager, Pool
 from functools import partial
 import sys
 import time
+import torch
 
 from tqdm import tqdm
 

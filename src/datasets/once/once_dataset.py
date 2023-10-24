@@ -121,4 +121,4 @@ class OnceDataset(Dataset):
         folder_name = f"{scene_id}_patched"
         patched_filename = f"{frame_id}.bin"
 
-        return os.path.join(self.__dataset_root, 'data', folder_name, 'lidar_roof', patched_filename)
+        return os.path.join(self.__dataset_root, 'patched', 'data', folder_name, 'lidar_roof', patched_filename)

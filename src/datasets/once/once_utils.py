@@ -1,10 +1,12 @@
 import json
 import os
 import pickle
-from collections import defaultdict
-
-import cv2
 import numpy as np
+
+from collections import defaultdict
+from pyquaternion import Quaternion
+
+from src.utils.geometry_utils import points_in_box, transform_matrix
 
 
 class ONCE(object):
@@ -200,43 +202,26 @@ def get_instance_point_cloud(
         box_index = instance_ids.index(instance_id)
         box = annotations['boxes_3d'][box_index]
         cx, cy, cz, l, w, h, theta = box
-        maxd = max(l, w, h)
 
-        frame_point_cloud_t = frame_point_cloud.T
-        points = frame_point_cloud_t[:, :3]
+        points = frame_point_cloud[0:3, :]
 
-        lower_bounds = [cx - maxd, cy - maxd, cz - maxd]
-        upper_bounds = [cx + maxd, cy + maxd, cz + maxd]
+        mask = points_in_box(center_xyz=np.array([cx, cy, cz]),
+                             dimensions_lwh=np.array([l, w, h]),
+                             heading_angle=theta,
+                             points=points)
 
-        mask = np.all((lower_bounds <= points) & (points <= upper_bounds), axis=1)
-        points_inside = frame_point_cloud_t[mask]
+        instance_point_cloud = frame_point_cloud[:, np.where(mask)[0]]
 
-        reset_cloud = transform_points(points_inside, cx, cy, cz, l, w, h, theta)
-        return reset_cloud.T
+        identity_transformation = transform_matrix(np.array([cx, cy, cz]),
+                                                   Quaternion(theta, 0, 0, 1),
+                                                   inverse=True)
+
+        instance_point_cloud = __apply_transformation_matrix(point_cloud=instance_point_cloud,
+                                                             transformation_matrix=identity_transformation)
+        return instance_point_cloud
     else:
         raise ValueError(
             f"Instance ID {instance_id} is not present in the instance_ids list.")
-
-
-def transform_points(points, cx, cy, cz, l, w, h, theta):
-    theta_rad = -theta  # rotation transform matrix (rotate to minus! theta)
-    R = np.array([[np.cos(theta_rad), -np.sin(theta_rad), 0],
-                  [np.sin(theta_rad), np.cos(theta_rad), 0],
-                  [0, 0, 1]])
-
-    points_xyz = points[:, :3]
-
-    translated_points = points_xyz - np.array([cx, cy, cz])
-    rotated_points = np.dot(translated_points, R.T)
-
-    inside_mask = (np.all(np.logical_and((-l / 2 <= rotated_points), (rotated_points <= l / 2)), axis=1) &
-                   np.all(np.logical_and((-w / 2 <= rotated_points), (rotated_points <= w / 2)), axis=1) &
-                   np.all(np.logical_and((-h / 2 <= rotated_points), (rotated_points <= h / 2)), axis=1))
-    intensity = points[inside_mask, 3]
-    transformed_points = rotated_points[inside_mask]
-    points_inside = np.column_stack((transformed_points, intensity))
-
-    return points_inside
 
 
 def reapply_frame_transformation(point_cloud: np.ndarray,
@@ -248,10 +233,16 @@ def reapply_frame_transformation(point_cloud: np.ndarray,
     instance_index = ids.index(instance_id)
     boxes = annotations['boxes_3d']
     box = boxes[instance_index]
+    cx, cy, cz, l, w, h, theta = box
 
-    moved_cloud = once.move_back_to_frame_coordinates(point_cloud, box)
+    reverse_transformation = transform_matrix(np.array([cx, cy, cz]),
+                                              Quaternion(theta, 0, 0, 1),
+                                              inverse=False)
 
-    return moved_cloud
+    instance_point_cloud = __apply_transformation_matrix(point_cloud=point_cloud,
+                                                         transformation_matrix=reverse_transformation)
+
+    return instance_point_cloud
 
 
 def get_pickle_data(dataset_root, scene_id):
@@ -303,3 +294,19 @@ def get_frame_ids_for_scene(once: ONCE,
 
     frame_ids = [os.path.basename(file).split('.')[0] for file in raw_frame_files]
     return sorted(frame_ids)
+
+def __apply_transformation_matrix(point_cloud: np.ndarray,
+                                  transformation_matrix: np.ndarray) -> np.ndarray:
+    """Applies given transformation matrix to the given point cloud.
+
+    :param point_cloud: np.ndarray[float]
+        Point cloud to transform of shape [3, n]
+    :param transformation_matrix: np.ndarray[float]
+        Transformation matrix that describes rotation and translation of shape [4, 4].
+    :return: np.ndarray[float]
+        Modified point cloud.
+    """
+    points_count = point_cloud.shape[1]
+    point_cloud[:3, :] = transformation_matrix.dot(
+        np.vstack((point_cloud[:3, :], np.ones(points_count))))[:3, :]
+    return point_cloud

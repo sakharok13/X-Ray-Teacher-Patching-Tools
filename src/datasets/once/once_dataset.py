@@ -74,9 +74,7 @@ class OnceDataset(Dataset):
         path_to_save = self.__get_patched_folder_and_filename(scene_id, frame_id)
 
         dir_path = os.path.dirname(path_to_save)
-
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
+        os.makedirs(dir_path, exist_ok=True)
 
         OnceFramePatcher.serialise(path=path_to_save,
                                    point_cloud=frame_point_cloud)
@@ -118,7 +116,6 @@ class OnceDataset(Dataset):
                                         once=self.__once)
 
     def __get_patched_folder_and_filename(self, scene_id: str, frame_id: str):
-        folder_name = f"{scene_id}_patched"
         patched_filename = f"{frame_id}.bin"
-
-        return os.path.join(self.__dataset_root, 'data', folder_name, 'lidar_roof', patched_filename)
+        patched_folder = os.path.join(self.__dataset_root, 'data', 'patched', scene_id, 'lidar_roof')
+        return os.path.join(patched_folder, patched_filename)

@@ -32,8 +32,10 @@ class OnceDataset(Dataset):
 
     def __init__(self,
                  dataset_root: str,
-                 split: str):
+                 split: str,
+                 overwrite: bool):
         self.__dataset_root = dataset_root
+        self.__overwrite = overwrite
         self.__scenes_root = os.path.join(self.__dataset_root, 'data')
 
         self.__once = ONCE(self.__dataset_root, self.__scenes_root, split)
@@ -75,7 +77,7 @@ class OnceDataset(Dataset):
 
         dir_path = os.path.dirname(path_to_save)
 
-        if not os.path.exists(dir_path):
+        if not os.path.exists(dir_path) and not self.__overwrite:
             os.makedirs(dir_path)
 
         OnceFramePatcher.serialise(path=path_to_save,

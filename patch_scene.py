@@ -192,6 +192,7 @@ def parse_arguments():
     parser.add_argument('--frames', action='store_true', help='Export frames.')
     parser.add_argument('--enable_logging', action='store_true', help='Save additional logs to file.')
     parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count(), help='Count of parallel workers.')
+    parser.add_argument('--overwrite', action='store_true', help='Overwrite saved files.')
     return parser.parse_args()
 
 def main():
@@ -205,7 +206,7 @@ def main():
     if dataset_type == 'nuscenes':
         dataset = NuscenesDataset(version=args.version, dataroot=args.dataroot)
     elif dataset_type == 'once':
-        dataset = OnceDataset(split=args.split, dataset_root=args.dataroot)
+        dataset = OnceDataset(split=args.split, dataset_root=args.dataroot, overwrite=args.overwrite)
     elif dataset_type == 'waymo':
         dataset = WaymoDataset(dataset_root=args.dataroot)
     else:

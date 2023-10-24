@@ -77,11 +77,16 @@ class OnceDataset(Dataset):
 
         dir_path = os.path.dirname(path_to_save)
 
-        if not os.path.exists(dir_path) and not self.__overwrite:
+        if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        OnceFramePatcher.serialise(path=path_to_save,
-                                   point_cloud=frame_point_cloud)
+            OnceFramePatcher.serialise(path=path_to_save,
+                                       point_cloud=frame_point_cloud)
+        elif self.__overwrite:
+            OnceFramePatcher.serialise(path=path_to_save,
+                                       point_cloud=frame_point_cloud)
+        else:
+            print("Skipping frame " + frame_id)
 
         return path_to_save
 

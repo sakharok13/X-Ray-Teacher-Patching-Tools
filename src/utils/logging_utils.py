@@ -15,7 +15,7 @@ def create_logger() -> logging.Logger:
     current_timestamp = datetime.datetime.now().strftime("%d.%m.%y_%H%M")
     handler = RotatingFileHandler(filename=os.path.join(logs_dir, f"patching_{current_timestamp}.logs"),
                                   mode='a',
-                                  maxBytes=5 * 1024 * 1024,
+                                  maxBytes=5 * 1024,
                                   encoding='utf-8')
 
     handler.setFormatter(log_formatter)

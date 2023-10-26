@@ -28,7 +28,7 @@ class NuscenesDataset(Dataset):
 
     @property
     def scenes(self) -> list:
-        return self.__scenes
+        return list(self.__scenes_lookup.keys())
 
     def get_scene_iterator(self, scene_id: str) -> Dataset.SceneIterator:
         assert scene_id in self.__scenes_lookup

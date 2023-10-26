@@ -9,8 +9,10 @@ from functools import partial
 import sys
 import time
 import torch
+import logging
 
 from tqdm import tqdm
+from logging.handlers import QueueHandler, QueueListener
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './gedi'))
 from src.accumulation.accumulation_strategy import AccumulationStrategy
@@ -23,10 +25,8 @@ from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
 from src.datasets.once.once_dataset import OnceDataset
 from src.datasets.waymo.waymo_dataset import WaymoDataset
 from src.utils.dataset_helper import group_instances_across_frames, can_skip_frame, can_skip_scene
-from src.utils.logging_utils import create_logger
+from src.utils.logging_utils import create_root_handler
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
-
-logging = create_logger()
 
 
 def __patch_scene(scene_id: str,
@@ -158,33 +158,53 @@ def __patch_scene(scene_id: str,
     return True
 
 
+def __on_process_init(log_queue,
+                      enable_logging: bool):
+    queue_handler = QueueHandler(log_queue)
+    logger = logging.getLogger()
+    logger.disabled = not enable_logging
+    logger.setLevel(logging.INFO)
+    logger.addHandler(queue_handler)
+
+
 def __process_dataset(dataset: Dataset,
                       accumulation_strategy: AccumulationStrategy,
                       export_instances: bool,
                       export_frames: bool,
                       num_workers: int,
                       force_overwrite: bool,
-                      gedi_counter):
+                      enable_logging: bool):
     assert num_workers > 0, "num_workers should be positive"
 
     print(f"Processing dataset from: {dataset.dataroot}")
-    logging.info(f"Processing dataset from: {dataset.dataroot}")
 
     scenes = dataset.scenes
     scenes_count = len(scenes)
 
-    patch_scene = partial(
-        __patch_scene,
-        accumulation_strategy=accumulation_strategy,
-        dataset=dataset,
-        export_instances=export_instances,
-        export_frames=export_frames,
-        force_overwrite=force_overwrite,
-        gedi_counter=gedi_counter
-    )
+    with Manager() as manager:
+        log_queue = manager.Queue()
+        queue_listener = QueueListener(log_queue, create_root_handler())
+        queue_listener.start()
 
-    with Pool(num_workers) as p:
-        list(tqdm(p.imap_unordered(patch_scene, scenes), total=scenes_count))
+        gedi_counter = manager.dict()
+        for i in range(torch.cuda.device_count()):
+            gedi_counter[i] = 0
+
+        patch_scene = partial(
+            __patch_scene,
+            accumulation_strategy=accumulation_strategy,
+            dataset=dataset,
+            export_instances=export_instances,
+            export_frames=export_frames,
+            force_overwrite=force_overwrite,
+            gedi_counter=gedi_counter
+        )
+
+        with Pool(num_workers, __on_process_init, [log_queue, enable_logging]) as p:
+            list(tqdm(p.imap_unordered(patch_scene, scenes), total=scenes_count))
+
+        # Close the queue and the handler_process.
+        queue_listener.stop()
 
 
 accumulator_strategies = {
@@ -215,8 +235,6 @@ def main():
     multiprocessing.set_start_method('spawn', force=True)
     args = parse_arguments()
 
-    logging.disabled = not args.enable_logging
-
     dataset_type = args.dataset
 
     if dataset_type == 'nuscenes':
@@ -230,18 +248,13 @@ def main():
 
     accumulator_strategy = accumulator_strategies[args.strategy]
 
-    with Manager() as manager:
-        gedi_counter = manager.dict()
-        for i in range(torch.cuda.device_count()):
-            gedi_counter[i] = 0
-
-        __process_dataset(dataset=dataset,
-                          accumulation_strategy=accumulator_strategy,
-                          export_instances=args.instances,
-                          export_frames=args.frames,
-                          num_workers=args.num_workers,
-                          force_overwrite=args.force_overwrite,
-                          gedi_counter=gedi_counter)
+    __process_dataset(dataset=dataset,
+                      accumulation_strategy=accumulator_strategy,
+                      export_instances=args.instances,
+                      export_frames=args.frames,
+                      num_workers=args.num_workers,
+                      force_overwrite=args.force_overwrite,
+                      enable_logging=args.enable_logging)
 
 
 if __name__ == '__main__':

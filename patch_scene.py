@@ -22,7 +22,7 @@ from src.datasets.dataset import Dataset
 from src.datasets.nuscenes.nuscenes_dataset import NuscenesDataset
 from src.datasets.once.once_dataset import OnceDataset
 from src.datasets.waymo.waymo_dataset import WaymoDataset
-from src.utils.dataset_helper import group_instances_across_frames
+from src.utils.dataset_helper import group_instances_across_frames, can_skip_frame, can_skip_scene
 from src.utils.logging_utils import create_logger
 from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
@@ -36,6 +36,12 @@ def __patch_scene(scene_id: str,
                   export_frames: bool,
                   force_overwrite: bool,
                   gedi_counter):
+    if can_skip_scene(dataset=dataset,
+                      scene_id=scene_id,
+                      force_overwrite=force_overwrite):
+        logging.info(f"[Scene {scene_id}] Skipping scene.")
+        return True
+
     if isinstance(accumulation_strategy, GediAccumulatorStrategy):
         gpu_id = -1
         while gpu_id == -1:
@@ -98,8 +104,10 @@ def __patch_scene(scene_id: str,
     frames_to_instances_lookup: dict = dict()
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
-            if not force_overwrite and not dataset.can_serialise_frame_point_cloud(scene_id=scene_id,
-                                                                                   frame_id=frame_id):
+            if can_skip_frame(dataset=dataset,
+                              scene_id=scene_id,
+                              frame_id=frame_id,
+                              force_overwrite=force_overwrite):
                 logging.warning(f"[Scene {scene_id}] Skipping frame {frame_id}...")
                 continue
 

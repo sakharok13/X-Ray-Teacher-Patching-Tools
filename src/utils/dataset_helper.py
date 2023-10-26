@@ -27,3 +27,24 @@ def group_instances_across_frames(scene_id: str,
             grouped_instances[instance_id].append(frame_id)
 
     return grouped_instances
+
+
+def can_skip_scene(dataset: Dataset,
+                   scene_id: str,
+                   force_overwrite: bool) -> bool:
+    scene_iterator = dataset.get_scene_iterator(scene_id=scene_id)
+    for frame_id, frame in scene_iterator:
+        if not can_skip_frame(dataset=dataset,
+                              scene_id=scene_id,
+                              frame_id=frame_id,
+                              force_overwrite=force_overwrite):
+            return False
+    return True
+
+
+def can_skip_frame(dataset: Dataset,
+                   scene_id: str,
+                   frame_id: str,
+                   force_overwrite: bool) -> bool:
+    return not force_overwrite and not dataset.can_serialise_frame_point_cloud(scene_id=scene_id,
+                                                                               frame_id=frame_id)

@@ -1,6 +1,4 @@
-import os
 import numpy as np
-from sys import argv
 from random import shuffle
 from math import *
 from src.utils.icp.kdtree import KdTree
@@ -81,3 +79,7 @@ def icp_registration(pts1: np.ndarray,
             new_mean = old_mean
 
         print("Finished iteration #{} with improvement of {:2.4%}".format(count, 1.0 - ratio))
+
+        transformed_pts1 = [point.transform(M1) for point in pts1]
+
+        return transformed_pts1

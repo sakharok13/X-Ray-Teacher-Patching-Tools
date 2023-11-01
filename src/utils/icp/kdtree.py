@@ -1,87 +1,90 @@
-from math import *
-from .box import Box
-from .point import Point
+from math import inf
+from typing import Optional
 
-# Node class to maintain data structure
-class Node:
-    # Accepts a point, a float, and a box as it's input
-    def __init__(self, p, key, bounds):
+import numpy as np
+
+from src.utils.icp.box import Box
+
+
+def _get_distance_between(a: np.ndarray, b: np.ndarray) -> float:
+    return np.sum(np.square(a - b))
+
+
+class _Node:
+    def __init__(self,
+                 p: np.ndarray,
+                 key: float,
+                 bounds: Box):
+        assert p is not None
+        assert bounds is not None
+
         # Key associated with node (dimension coord)
         self.key = key
 
         # Point associated with node
-        if (type(p) == Point):
-            self.p = p
-        else:
-            self.p = None
+        self.p = p
 
         # Bounds associated with node
         self.bounds = bounds
-        if (type(bounds) == Box):
-            self.bounds = bounds
-        else:
-            self.bounds = None
 
         # Left and right links
         self.left = None
         self.right = None
 
+
 # A kdtree
 class KdTree:
     # Constructor takes int k defining the number of dimensions
     def __init__(self, k=3):
-        self.k = k
-        self.size = 0
-        self.root = None
-        self.minP = [-inf for i in range(k)]
-        self.maxP = [inf for i in range(k)]
+        self.__k = k
+        self.__size = 0
+        self.__root = None
+        self.__min_point = np.array([-inf for i in range(k)])
+        self.__max_point = np.array([inf for i in range(k)])
+
+    @property
+    def empty(self) -> bool:
+        return self.__size == 0
 
     # External method for inserting points
-    def insert(self, p):
-        if (type(p) != Point):
-            print("Error: Insert method not provided a valid point")
-            return
-        if (p.d != self.k):
-            print("Error: Point and KdTree must have same dimensionality")
-            return
+    def insert(self, point: np.ndarray):
+        assert isinstance(point, np.ndarray), \
+            "Error: Insert method not provided a valid point"
 
-        bounds = Box(Point(self.minP), Point(self.maxP))
-        self.root = self.put(self.root, p, 0, bounds)
+        bounds = Box(self.__min_point, self.__max_point)
+        self.__root = self.__insert(self.__root, point, 0, bounds)
 
     # Internal method for inserting points
-    def put(self, node, p, dim, bounds):
-        # Base case
-        if (node == None):
-            self.size += 1
-            key = p.s[dim]
-            return Node(p, key, bounds)
+    def __insert(self,
+                 node: Optional,
+                 point: np.ndarray,
+                 dimension: int,
+                 bounds: Box) -> _Node:
+        # Terminal case.
+        if node is None:
+            self.__size += 1
+            return _Node(point, point[dimension], bounds)
 
-        # Compare the point to the node and proceed accordingly
-        cmp = p.s[dim] - node.key
-        if (cmp < 0):
+        if point[dimension] < node.key:
             # Go left if smaller; update upper bounds
-            upperBounds = bounds.copy()
-            upperBounds.updateMax(node.key, dim)
-            node.left = self.put(node.left, p, (dim + 1) % self.k, upperBounds)
+            upper_bounds = bounds.copy()
+            upper_bounds.update_max(node.key, dimension)
+            node.left = self.__insert(node.left, point, (dimension + 1) % self.__k, upper_bounds)
         else:
             # Go right otherwise; update lower bounds
-            lowerBounds = bounds.copy()
-            lowerBounds.updateMin(node.key, dim)
-            node.right = self.put(node.right, p, (dim + 1) % self.k, lowerBounds)
+            lower_bounds = bounds.copy()
+            lower_bounds.update_min(node.key, dimension)
+            node.right = self.__insert(node.right, point, (dimension + 1) % self.__k, lower_bounds)
 
         return node
 
     # Returns nearest neighbor in kdtree to point p; Returns None if the tree is
     #   empty
-    def nearest(self, p):
-        if (type(p) != Point):
-            print("Error: Nearest method not provided a valid point")
-            return
-        if (p.d != self.k):
-            print("Error: Point and KdTree must have same dimensionality")
-            return
+    def find_nearest(self, point: np.ndarray) -> Optional:
+        assert isinstance(point, np.ndarray)
+
         # corner case that there are no nearest points (kd tree is empty)
-        if (self.size == 0):
+        if self.empty:
             return None
 
         # Start at the root and recursively search in both subtrees using the
@@ -97,39 +100,52 @@ class KdTree:
         # subtree that is on the same side of the splitting line as the query
         # point; the closest point found while exploring the first subtree may
         # enable pruning of the second subtree.
-        root = self.root
-        nearest_p, dist = self.find_nearest(root, p, 0, root.p, p.distSqdTo(root.p))
-        return nearest_p
+        root = self.__root
+        nearest_point, _ = self.__find_nearest(root, point, 0, root.p, _get_distance_between(point, root.p))
+        return nearest_point
 
-    # Internal method for finding the nearest point to p
-    def find_nearest(self, node, p, dim, candidate, dist):
+    def __find_nearest(self,
+                       node: _Node,
+                       point: np.ndarray,
+                       dimension: int,
+                       nearest_candidate_point: np.ndarray,
+                       distance_to_nearest_candidate: float):
         # Base case
-        if (node == None):
-            return candidate, dist
+        if node is None:
+            return nearest_candidate_point, distance_to_nearest_candidate
 
         # Check if furthest distance of the nearest candidates is less than
         # that of bounding box
-        if (dist < node.bounds.distSqdTo(p)):
-            return candidate, dist
+        if distance_to_nearest_candidate < node.bounds.calculate_square_l2_distance(point):
+            return nearest_candidate_point, distance_to_nearest_candidate
 
         # Replace candidate if closer
-        newDist = p.distSqdTo(node.p)
-        if (newDist < dist):
-            candidate = node.p
-            dist = newDist
+        new_distance = _get_distance_between(point, node.p)
+        if new_distance < distance_to_nearest_candidate:
+            nearest_candidate_point = node.p
+            distance_to_nearest_candidate = new_distance
 
         # Determine whether the tree should go left first or right first
         # Rmk: goes left first iff query point is on the left
-        go_left = (p.s[dim] < node.key)
+        should_check_left_subtree_first = (point[dimension] < node.key)
 
-        for i in range(2):
-            if (go_left):
-                # Travel leftwards down the tree
-                candidate, dist = self.find_nearest(node.left, p, (dim + 1) % self.k, candidate, dist)
-            else:
-                # Travels rightwards down the tree
-                candidate, dist = self.find_nearest(node.right, p, (dim + 1) % self.k, candidate, dist)
+        if should_check_left_subtree_first:
+            first_to_traverse_child = node.left
+            last_to_traverse_child = node.right
+        else:
+            first_to_traverse_child = node.right
+            last_to_traverse_child = node.left
 
-            go_left = not go_left
+        nearest_candidate_point, distance_to_nearest_candidate = self.__find_nearest(first_to_traverse_child,
+                                                                                     point,
+                                                                                     (dimension + 1) % self.__k,
+                                                                                     nearest_candidate_point,
+                                                                                     distance_to_nearest_candidate)
 
-        return candidate, dist
+        nearest_candidate_point, distance_to_nearest_candidate = self.__find_nearest(last_to_traverse_child,
+                                                                                     point,
+                                                                                     (dimension + 1) % self.__k,
+                                                                                     nearest_candidate_point,
+                                                                                     distance_to_nearest_candidate)
+
+        return nearest_candidate_point, distance_to_nearest_candidate

@@ -1,4 +1,5 @@
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
+from src.accumulation.icp_accumulator_strategy import ICPAccumulatorStrategy
 from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 
 from src.datasets.dataset import Dataset
@@ -43,7 +44,7 @@ def main():
     point_cloud_accumulator = PointCloudAccumulator(step=1,
                                                     grouped_instances=grouped_instances,
                                                     dataset=dataset)
-    default_accumulation_strategy = DefaultAccumulatorStrategy()
+    accumulation_strategy = ICPAccumulatorStrategy()
 
     frame_id = '1616013899200'
     instance_ids = set()
@@ -62,12 +63,12 @@ def main():
     for i, instance_id in enumerate(instance_ids):
         accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
                                                                 instance_id=instance_id,
-                                                                accumulation_strategy=default_accumulation_strategy)
+                                                                accumulation_strategy=accumulation_strategy)
 
         print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
-        # visualise_points_cloud(accumulated_point_cloud.T)
+        visualise_points_cloud(accumulated_point_cloud.T)
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)

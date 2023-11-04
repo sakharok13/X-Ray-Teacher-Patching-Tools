@@ -1,8 +1,7 @@
-import os
 import math
-import torch
+
 import numpy as np
-from scipy.io import loadmat
+import torch
 
 T_COLS = ['T00', 'T01', 'T02', 'T03',
           'T10', 'T11', 'T12', 'T13',
@@ -26,9 +25,13 @@ def homo_matmul(pts, T):
     return (pts_T / pts_T[:, 3].reshape(-1, 1))[:, :3]
 
 
-def load_rotations():
+def generate_z_rotations_grid(
+        degree_interval_start: int = -30,
+        degree_interval_end: int = 30,
+        degree_step: int = 2,
+):
     """
-    Load precomputed rotations.
+    Generates a rotation greed in between degree_interval_start and
 
     Input:  rotation_choice: (str) name of rotations
     Returns: R_batch: (torch) Nx3x3 rotations
@@ -36,10 +39,11 @@ def load_rotations():
 
     rotations = []
 
-    for thetha in range(-180, 180, 15):
+    for theta in range(degree_interval_start, degree_interval_end, degree_step):
+        angle = math.pi * theta / 180
         matrix = [
-            [math.cos(thetha), -math.sin(thetha), 0],
-            [math.sin(thetha), math.cos(thetha), 0],
+            [math.cos(angle), -math.sin(angle), 0],
+            [math.sin(angle), math.cos(angle), 0],
             [0, 0, 1],
         ]
 

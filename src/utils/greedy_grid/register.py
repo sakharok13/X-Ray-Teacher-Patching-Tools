@@ -7,7 +7,7 @@ from src.utils.greedy_grid.data_utils import preprocess_pcj
 from src.utils.greedy_grid.fft_conv import fft_conv
 from src.utils.greedy_grid.padding_utils import padding_options
 from src.utils.greedy_grid.pc_utils import voxelize, unravel_index_pytorch
-from src.utils.greedy_grid.rot_utils import create_T_estim_matrix, load_rotations
+from src.utils.greedy_grid.rot_utils import create_T_estim_matrix, generate_z_rotations_grid
 from src.utils.geometry_utils import apply_transformation_matrix
 
 
@@ -24,7 +24,7 @@ def register(source_point_cloud: np.ndarray,
     Register selected dataset.
     dimensions * N
     """
-    R_batch = load_rotations()
+    R_batch = generate_z_rotations_grid()
 
     pci = torch.from_numpy(target_point_cloud[0:3, :].T)
     pcj = torch.from_numpy(source_point_cloud[0:3, :].T)

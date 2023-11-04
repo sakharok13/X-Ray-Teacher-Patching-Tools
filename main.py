@@ -1,5 +1,6 @@
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
 from src.accumulation.icp_accumulator_strategy import ICPAccumulatorStrategy
+from src.accumulation.greedy_grid_accumulator_strategy import GreedyGridAccumulatorStrategy
 from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 
 from src.datasets.dataset import Dataset
@@ -44,7 +45,7 @@ def main():
     point_cloud_accumulator = PointCloudAccumulator(step=1,
                                                     grouped_instances=grouped_instances,
                                                     dataset=dataset)
-    accumulation_strategy = ICPAccumulatorStrategy()
+    accumulation_strategy = GreedyGridAccumulatorStrategy()
 
     frame_id = '1616013899200'
     instance_ids = set()

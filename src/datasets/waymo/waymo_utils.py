@@ -63,8 +63,8 @@ def get_instance_point_cloud(frame_point_cloud: np.ndarray,
         Returns point cloud for the given object.
         Dimension of the array is 5xm.
     """
-    annotations = frame_descriptor['annotations']
-    ids = annotations['ids']
+    annotations = frame_descriptor['annos']
+    ids = annotations['obj_ids']
 
     instance_index = np.where(ids == instance_id)
     instance_column = instance_index[0][0]

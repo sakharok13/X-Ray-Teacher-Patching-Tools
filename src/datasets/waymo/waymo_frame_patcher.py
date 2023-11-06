@@ -63,13 +63,13 @@ class WaymoFramePatcher(FramePatcher):
     def patch_instance(self,
                        instance_id: str,
                        point_cloud: np.ndarray):
-        annotations = self.__frame_descriptor['annotations']
-        ids = annotations['ids']
+        annotations = self.__frame_descriptor['annos']
+        ids = annotations['obj_ids']
 
         instance_index = np.where(ids == instance_id)
         instance_column = instance_index[0][0]
 
-        center_xyz = annotations['locations'][instance_column, :]
+        center_xyz = annotations['location'][instance_column, :]
         dimensions_lwh = annotations['dimensions'][instance_column, :]
         heading_angle = annotations['heading_angles'][instance_column]
 

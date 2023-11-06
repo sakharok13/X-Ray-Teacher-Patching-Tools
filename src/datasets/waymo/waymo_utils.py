@@ -69,7 +69,7 @@ def get_instance_point_cloud(frame_point_cloud: np.ndarray,
     instance_index = np.where(ids == instance_id)
     instance_column = instance_index[0][0]
 
-    center_xyz = annotations['locations'][instance_column, :]
+    center_xyz = annotations['location'][instance_column, :]
     dimensions_lwh = annotations['dimensions'][instance_column, :]
     heading_angle = annotations['heading_angles'][instance_column]
 
@@ -94,13 +94,13 @@ def get_instance_point_cloud(frame_point_cloud: np.ndarray,
 def reapply_frame_transformation(point_cloud: np.ndarray,
                                  instance_id: str,
                                  frame_descriptor: dict) -> np.ndarray:
-    annotations = frame_descriptor['annotations']
-    ids = annotations['ids']
+    annotations = frame_descriptor['annos']
+    ids = annotations['obj_ids']
 
     instance_index = np.where(ids == instance_id)
     instance_column = instance_index[0][0]
 
-    center_xyz = annotations['locations'][instance_column, :]
+    center_xyz = annotations['location'][instance_column, :]
     heading_angle = annotations['heading_angles'][instance_column]
 
     reverse_transformation = transform_matrix(center_xyz,

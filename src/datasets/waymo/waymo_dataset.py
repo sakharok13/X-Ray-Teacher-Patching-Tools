@@ -1,10 +1,8 @@
 import os
-import sys
-import open3d as o3d
-import numpy as np
-
-from typing import Optional
 from functools import lru_cache
+from typing import Optional
+
+import numpy as np
 
 from src.datasets.dataset import Dataset
 from src.datasets.frame_patcher import FramePatcher

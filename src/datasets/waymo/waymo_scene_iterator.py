@@ -37,7 +37,7 @@ class WaymoSceneIterator(Dataset.SceneIterator):
 
         assert frame_id == frame_metadata['frame_id']
 
-        instance_ids = frame_metadata['annotations']['ids']
+        instance_ids = frame_metadata['annos']['obj_ids']
 
         self.__current_frame += 1
 

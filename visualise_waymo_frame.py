@@ -8,7 +8,7 @@ def main():
     lidar_data_path = sys.argv[1]
 
     lidar_point_clouds = np.load(lidar_data_path)
-    visualise_points_cloud(lidar_point_clouds.T,
+    visualise_points_cloud(lidar_point_clouds,
                            window_title=lidar_data_path)
 
 

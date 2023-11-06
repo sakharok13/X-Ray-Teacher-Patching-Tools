@@ -1,18 +1,16 @@
 import argparse
-import datetime
-import os
-import numpy as np
-import open3d as o3d
+import logging
 import multiprocessing
-from multiprocessing import Manager, Pool
-from functools import partial
+import os
 import sys
 import time
-import torch
-import logging
-
-from tqdm import tqdm
+from functools import partial
 from logging.handlers import QueueHandler, QueueListener
+from multiprocessing import Manager, Pool
+
+import numpy as np
+import torch
+from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), './gedi'))
 from src.accumulation.accumulation_strategy import AccumulationStrategy
@@ -26,14 +24,11 @@ from src.datasets.once.once_dataset import OnceDataset
 from src.datasets.waymo.waymo_dataset import WaymoDataset
 from src.utils.dataset_helper import group_instances_across_frames, can_skip_frame, can_skip_scene
 from src.utils.logging_utils import create_root_handler
-from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
 
 def __patch_scene(scene_id: str,
                   accumulation_strategy: AccumulationStrategy,
                   dataset: Dataset,
-                  export_instances: bool,
-                  export_frames: bool,
                   force_overwrite: bool,
                   gedi_counter):
     if can_skip_scene(dataset=dataset,
@@ -87,13 +82,6 @@ def __patch_scene(scene_id: str,
                                                                 instance_id=instance,
                                                                 accumulation_strategy=accumulation_strategy)
 
-        if export_instances:
-            timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-            filename = os.path.join(output_folder, f"{instance}_{timestamp}.ply")
-            accumulated_point_cloud_o3d = convert_to_o3d_pointcloud(
-                accumulated_point_cloud.T)  # obj instance accumulated
-            o3d.io.write_point_cloud(filename, accumulated_point_cloud_o3d)
-
         instance_accumulated_clouds_lookup[instance] = accumulated_point_cloud
 
         current_instance_index += 1
@@ -135,11 +123,6 @@ def __patch_scene(scene_id: str,
                                                           frame_id=frame_id,
                                                           frame_point_cloud=patcher.frame)
 
-        if export_frames:
-            filename = os.path.join(output_folder_frame, f"{current_frame_index}.ply")
-            frame_o3d = convert_to_o3d_pointcloud(patcher.frame.T)  # patched frame
-            o3d.io.write_point_cloud(filename, frame_o3d)
-
         current_frame_index += 1
 
         if saved_path is not None:
@@ -169,8 +152,6 @@ def __on_process_init(log_queue,
 
 def __process_dataset(dataset: Dataset,
                       accumulation_strategy: AccumulationStrategy,
-                      export_instances: bool,
-                      export_frames: bool,
                       num_workers: int,
                       force_overwrite: bool,
                       enable_logging: bool):
@@ -194,8 +175,6 @@ def __process_dataset(dataset: Dataset,
             __patch_scene,
             accumulation_strategy=accumulation_strategy,
             dataset=dataset,
-            export_instances=export_instances,
-            export_frames=export_frames,
             force_overwrite=force_overwrite,
             gedi_counter=gedi_counter
         )
@@ -222,8 +201,6 @@ def parse_arguments():
                         default="train", help="Once dataset split type.")
     parser.add_argument('--dataroot', type=str, default='./temp/nuscenes', help='Data root location.')
     parser.add_argument('--strategy', type=str, default='default', help='Accumulation strategy.')
-    parser.add_argument('--instances', action='store_true', help='Export instances.')
-    parser.add_argument('--frames', action='store_true', help='Export frames.')
     parser.add_argument('--enable_logging', action='store_true', help='Save additional logs to file.')
     parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count(),
                         help='Count of parallel workers.')
@@ -250,8 +227,6 @@ def main():
 
     __process_dataset(dataset=dataset,
                       accumulation_strategy=accumulator_strategy,
-                      export_instances=args.instances,
-                      export_frames=args.frames,
                       num_workers=args.num_workers,
                       force_overwrite=args.force_overwrite,
                       enable_logging=args.enable_logging)

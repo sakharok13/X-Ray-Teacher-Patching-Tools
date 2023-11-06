@@ -31,6 +31,7 @@ def __patch_scene(scene_id: str,
                   dataset: Dataset,
                   force_overwrite: bool,
                   gedi_counter):
+    # O(frames)
     if can_skip_scene(dataset=dataset,
                       scene_id=scene_id,
                       force_overwrite=force_overwrite):
@@ -53,6 +54,7 @@ def __patch_scene(scene_id: str,
 
     logging.info(f"[Scene {scene_id}] Starting...")
 
+    # O(frames * instances)
     grouped_instances = group_instances_across_frames(scene_id=scene_id, dataset=dataset)
 
     point_cloud_accumulator = PointCloudAccumulator(step=1,
@@ -64,20 +66,13 @@ def __patch_scene(scene_id: str,
     current_instance_index = 0
     overall_instances_to_process_count = len(grouped_instances)
 
-    output_folder = './temp/ply_instances_geo/'
-    output_folder_frame = './temp/ply_frames_geo/'
-
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-
-    if not os.path.exists(output_folder_frame):
-        os.makedirs(output_folder_frame)
-
+    # O(instances * frames * N * d)
     for instance in grouped_instances.keys():
         logging.info(f"[Scene {scene_id}] Merging {instance}")
 
         assert instance not in instance_accumulated_clouds_lookup
 
+        # O(frames * N * d)
         accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
                                                                 instance_id=instance,
                                                                 accumulation_strategy=accumulation_strategy)
@@ -90,6 +85,7 @@ def __patch_scene(scene_id: str,
             f"of instances.")
 
     frames_to_instances_lookup: dict = dict()
+    # O(instances * frames)
     for instance, frames in grouped_instances.items():
         for frame_id in frames:
             if can_skip_frame(dataset=dataset,
@@ -107,6 +103,7 @@ def __patch_scene(scene_id: str,
     overall_frames_to_patch_count = len(frames_to_instances_lookup)
     logging.info(f"[Scene {scene_id}] Found {overall_frames_to_patch_count} frames to patch.")
 
+    # O(instances * frames)
     for frame_id, instances in frames_to_instances_lookup.items():
         logging.info(f"[Scene {scene_id}] Patching frame {frame_id}...")
 

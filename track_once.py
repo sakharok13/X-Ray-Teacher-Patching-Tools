@@ -151,6 +151,9 @@ def parallel_process(scene,
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='patch scene arguments')
+    parser.add_argument('--split', type=str,
+                        choices=['train', 'val', 'test', 'raw_small', 'raw_medium', 'raw_large'],
+                        default=None, help='Once dataset split.')
     parser.add_argument('--dataroot', type=str, default=None, help='Data root location.')
     parser.add_argument('--save_dir', type=str, default='./out', help='Directory to save tracked files.')
     parser.add_argument('--force_overwrite', action='store_true', help='Overwrite saved files.')
@@ -160,6 +163,7 @@ def parse_arguments():
 if __name__ == '__main__':
     args = parse_arguments()
 
+    split = args.split
     dataset_root = args.dataroot
     save_dir_path = args.save_dir
     overwrite = args.force_overwrite
@@ -167,10 +171,14 @@ if __name__ == '__main__':
     assert dataset_root is not None, \
         "Dataset root should be specified."
 
+    assert split is not None, \
+        "Split was not specified."
+    split_file = os.path.join(dataset_root, 'ImageSets', f"{split}.txt")
+
     os.makedirs(save_dir_path, exist_ok=True)
 
     scenes_path = os.path.join(dataset_root, 'data')
-    scenes = sorted(os.listdir(scenes_path))
+    scenes = set(map(lambda x: x.strip(), open(split_file).readlines()))
 
     path = os.path.join(dataset_root, 'once_raw_small.pkl')
     with open(path, 'rb') as file:

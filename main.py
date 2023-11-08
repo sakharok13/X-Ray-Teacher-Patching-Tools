@@ -67,7 +67,7 @@ def main():
         print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
-        visualise_points_cloud(accumulated_point_cloud.T)
+        # visualise_points_cloud(accumulated_point_cloud.T)
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)
@@ -75,7 +75,7 @@ def main():
         print('Progress', f"{(i/len(instance_ids) * 100):.1f}%")
 
     # Patched scene.
-    # visualise_points_cloud(frame_patcher.frame.T)
+    visualise_points_cloud(frame_patcher.frame.T)
 
     saved_path = dataset.serialise_frame_point_clouds(scene_id=scene_id,
                                                       frame_id=frame_patcher.frame_id,

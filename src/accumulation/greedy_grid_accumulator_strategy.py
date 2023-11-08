@@ -5,10 +5,11 @@ from src.utils.greedy_grid.register import register
 
 
 class GreedyGridAccumulatorStrategy(AccumulationStrategy):
-    """Provides a strategy that concatenates point clouds 'as is'.
+    """Provides a strategy that concatenates point clouds using Greedy Greed algorithm.
 
-    The strategy assumes that the point clouds are already aligned
-    and no further transformation is required.
+    See also
+    --------
+    Project webpage: https://github.com/DavidBoja/greedy-grid-search
     """
 
     def on_merge(self,

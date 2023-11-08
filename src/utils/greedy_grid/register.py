@@ -96,21 +96,36 @@ def register(source_point_cloud: np.ndarray,
 
     # translation -- translate for padding pp_xyz and CENTRAL_VOXEL_SOURCE
     # and then in the found max cc voxel
-    t = torch.Tensor([-(pp_xyz[0] * voxel_size) +
-                      ((CENTRAL_VOXEL_SOURCE[0]) * voxel_size) +
-                      (ind1 * voxel_size) +
-                      (0.5 * voxel_size),
+    # t = torch.Tensor([-(pp_xyz[0] * voxel_size) +
+    #                   ((CENTRAL_VOXEL_SOURCE[0]) * voxel_size) +
+    #                   (ind1 * voxel_size) +
+    #                   (0.5 * voxel_size),
+    #
+    #                   -(pp_xyz[2] * voxel_size) +
+    #                   ((CENTRAL_VOXEL_SOURCE[1]) * voxel_size) +
+    #                   (ind2 * voxel_size) +
+    #                   (0.5 * voxel_size),
+    #
+    #                   -(pp_xyz[4] * voxel_size) +
+    #                   ((CENTRAL_VOXEL_SOURCE[2]) * voxel_size) +
+    #                   (ind3 * voxel_size) +
+    #                   (0.5 * voxel_size)
+    #                   ])
 
-                      -(pp_xyz[2] * voxel_size) +
-                      ((CENTRAL_VOXEL_SOURCE[1]) * voxel_size) +
-                      (ind2 * voxel_size) +
-                      (0.5 * voxel_size),
+    max_translation_x = 20.0
+    max_translation_y = 20.0
+    max_translation_z = 20.0
 
-                      -(pp_xyz[4] * voxel_size) +
-                      ((CENTRAL_VOXEL_SOURCE[2]) * voxel_size) +
-                      (ind3 * voxel_size) +
-                      (0.5 * voxel_size)
-                      ])
+    t = torch.Tensor([
+        min(max_translation_x, max(-pp_xyz[0] * voxel_size + (
+                (CENTRAL_VOXEL_SOURCE[0]) * voxel_size) + ind1 * voxel_size + 0.5 * voxel_size,
+                                   -max_translation_x)),
+        min(max_translation_y, max(-pp_xyz[2] * voxel_size + (
+                (CENTRAL_VOXEL_SOURCE[1]) * voxel_size) + ind2 * voxel_size + 0.5 * voxel_size,
+                                   -max_translation_y)),
+        min(max_translation_z, max(-pp_xyz[4] * voxel_size + (
+                (CENTRAL_VOXEL_SOURCE[2]) * voxel_size) + ind3 * voxel_size + 0.5 * voxel_size, -max_translation_z))
+    ])
 
     center_pcj_translation = my_data.center
     make_pcj_posit_translation = minimas[rotation_index]

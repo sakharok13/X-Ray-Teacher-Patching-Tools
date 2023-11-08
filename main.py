@@ -1,3 +1,6 @@
+import datetime
+import os
+import open3d as o3d
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
 from src.accumulation.icp_accumulator_strategy import ICPAccumulatorStrategy
 from src.accumulation.greedy_grid_accumulator_strategy import GreedyGridAccumulatorStrategy
@@ -10,6 +13,7 @@ from src.datasets.waymo.waymo_dataset import WaymoDataset
 from src.datasets.once.once_dataset import OnceDataset
 
 from src.utils.visualisation_helper import visualise_points_cloud
+from src.utils.o3d_helper import convert_to_o3d_pointcloud
 
 
 def __create_dataset(dataset: str) -> Dataset:
@@ -18,7 +22,8 @@ def __create_dataset(dataset: str) -> Dataset:
     elif dataset == 'waymo':
         return WaymoDataset(dataset_root='./temp/open-waymo')
     elif dataset == 'once':
-        return OnceDataset(dataset_root='./temp/once', split="raw_small")
+        # return OnceDataset(dataset_root='./temp/once', split="raw_small")
+        return OnceDataset(dataset_root='D:\\', split="raw_small")
     else:
         raise Exception(f"Unknown dataset {dataset}")
 
@@ -46,6 +51,7 @@ def main():
                                                     grouped_instances=grouped_instances,
                                                     dataset=dataset)
     accumulation_strategy = GreedyGridAccumulatorStrategy()
+    # accumulation_strategy = DefaultAccumulatorStrategy()
 
     frame_id = '1616013899200'
     instance_ids = set()
@@ -61,6 +67,11 @@ def main():
     # Original unmodified frame.
     visualise_points_cloud(frame_patcher.frame.T)
 
+    output_folder = './temp/ply_instances_grid015/'
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
     for i, instance_id in enumerate(instance_ids):
         accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
                                                                 instance_id=instance_id,
@@ -69,7 +80,15 @@ def main():
         print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
-        visualise_points_cloud(accumulated_point_cloud.T)
+        # visualise_points_cloud(accumulated_point_cloud.T)
+        export_instances = True
+
+        if export_instances:
+            timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            filename = os.path.join(output_folder, f"{instance}_{timestamp}.ply")
+            accumulated_point_cloud_o3d = convert_to_o3d_pointcloud(
+                accumulated_point_cloud.T)  # obj instance accumulated
+            o3d.io.write_point_cloud(filename, accumulated_point_cloud_o3d)
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)

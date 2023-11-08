@@ -19,3 +19,8 @@ This code assumes that the NuScenes Mini dataset is placed in the root directory
 !tar -xf v1.0-mini.tgz -C ../data/sets/nuscenes  
 ```
 
+## Dependencies
+
+- [Greedy Grid Search](https://github.com/DavidBoja/greedy-grid-search): the code is used for one of [the accumulation strategies](./src/accumulation/greedy_grid_accumulator_strategy.py).
+The forked code of Greedy Grid is located under [`src.utils.greedy_grid`](./src/utils/greedy_grid).
+

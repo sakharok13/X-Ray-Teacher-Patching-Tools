@@ -59,15 +59,22 @@ def points_in_box(center_xyz: np.ndarray,
                   dimensions_lwh: np.ndarray,
                   heading_angle: float,
                   points: np.ndarray):
-    """
-    Checks whether points are inside the box.
+    """Specifies the points of the point cloud which are inside the bounding box.
 
     Picks one corner as reference (p1) and computes the vector to a target point (v).
     Then for each of the 3 axes, project v onto the axis and compare the length.
-    Inspired by: https://math.stackexchange.com/a/1552579
-    :param box: <Box>.
-    :param points: <np.float: 3, n>.
-    :param wlh_factor: Inflates or deflates the box.
+    Inspired by: https://math.stackexchange.com/a/1552579.
+
+    Runtime complexity is O(N*d).
+
+    :param center_xyz: np.ndarray
+        Coordinates of the bounding box center.
+    :param dimensions_lwh: np.ndarray
+        Length, width, and height of the bounding box.
+    :param heading_angle: float
+        Heading angle (i.e. z-rotation) of the bounding box.
+    :param points: np.ndarray
+        Frame point loud.
     :return: <np.bool: n, >.
     """
 

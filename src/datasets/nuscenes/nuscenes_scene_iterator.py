@@ -34,9 +34,12 @@ class NuScenesSceneIterator(Dataset.SceneIterator):
             raise StopIteration()
 
         frame_id = self.__current_sample
+        # NuScenes guarantees to return a record in constant runtime.
         raw_frame = self.__nuscenes.get('sample', frame_id)
 
-        instance_ids = [self.__nuscenes.get('sample_annotation', annotation)['instance_token'] for annotation in raw_frame['anns']]
+        # TODO: replace with constant runtime operation.
+        instance_ids = [self.__nuscenes.get('sample_annotation', annotation)['instance_token'] for annotation in
+                        raw_frame['anns']]
 
         self.__current_sample = raw_frame['next']
 

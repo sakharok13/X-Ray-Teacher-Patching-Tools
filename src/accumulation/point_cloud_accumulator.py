@@ -25,6 +25,8 @@ class PointCloudAccumulator:
               accumulation_strategy: AccumulationStrategy) -> np.ndarray:
         """Accumulates the point cloud of the given object across the scene using accumulation strategy.
 
+        Runtime complexity is O(frames * N * d).
+
         :param scene_id: str
             ID of a scene where to look for an instance.
         :param instance_id: str

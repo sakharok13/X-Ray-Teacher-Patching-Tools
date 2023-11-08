@@ -19,6 +19,7 @@ class OnceSceneIterator(Dataset.SceneIterator):
         self.__frame_ids = get_frame_ids_for_scene(once=once,
                                                    scene_id=scene_id)
 
+        # TODO: replace with constant runtime operation.
         self.__pickle_data = get_pickle_data(self.__once.dataset_root, self.__scene_id)
         self.__sequences_to_frames_lookup = aggregate_frames_in_sequences(self.__pickle_data)
         self.__frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(self.__pickle_data)
@@ -46,6 +47,7 @@ class OnceSceneIterator(Dataset.SceneIterator):
         # Frame descriptor can be None if there are no detections for the frame.
         instance_ids = []
 
+        # TODO: replace with constant runtime operation.
         if frame_id in self.__frame_id_to_annotations_lookup:
             frame_descriptor = self.__frame_id_to_annotations_lookup[frame_id]
             instance_ids = frame_descriptor['annos']['instance_ids']

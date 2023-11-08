@@ -51,14 +51,12 @@ def get_instance_point_cloud(frame_point_cloud: np.ndarray,
 
     The returned point cloud has reset rotation and translation.
 
-    :param frame_id: str
-        ID of a frame (aka sample).
+    :param frame_point_cloud: np.ndarray
+        Frame point cloud in <dimension, N> format.
     :param instance_id: str
         ID of an instance.
-    :param nuscenes: 'NuScenes'
-        NuScenes dataset facade.
-    :param frame_point_cloud: 'LidarPointCloud'
-        Point Cloud from lidar.
+    :param frame_descriptor: dict
+        Descriptor of the given frame.
     :return: np.ndarray[float]
         Returns point cloud for the given object.
         Dimension of the array is 5xm.
@@ -66,6 +64,7 @@ def get_instance_point_cloud(frame_point_cloud: np.ndarray,
     annotations = frame_descriptor['annos']
     ids = annotations['obj_ids']
 
+    # O(obj_ids)
     instance_index = np.where(ids == instance_id)
     instance_column = instance_index[0][0]
 

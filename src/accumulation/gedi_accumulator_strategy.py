@@ -7,10 +7,10 @@ from gedi import GeDi
 
 
 class GediAccumulatorStrategy(AccumulationStrategy):
-    """Provides a strategy that concatenates point clouds 'as is'.
+    """Provides a strategy that concatenates point clouds via PCR.
 
-    The strategy assumes that the point clouds are already aligned
-    and no further transformation is required.
+    This strategy involves aligning point clouds through a process
+    known as Point Cloud Registration (PCR) and then combining them.
     """
 
     def __init__(self):

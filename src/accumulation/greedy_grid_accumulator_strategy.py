@@ -5,10 +5,10 @@ from src.utils.greedy_grid.register import register
 
 
 class GreedyGridAccumulatorStrategy(AccumulationStrategy):
-    """Provides a strategy that concatenates point clouds 'as is'.
+    """Provides a strategy that concatenates point clouds via PCR.
 
-    The strategy assumes that the point clouds are already aligned
-    and no further transformation is required.
+    This strategy involves aligning point clouds through a process
+    known as Point Cloud Registration (PCR) and then combining them.
     """
 
     def on_merge(self,

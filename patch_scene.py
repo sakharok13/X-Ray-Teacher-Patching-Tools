@@ -16,6 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), './gedi'))
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
 from src.accumulation.gedi_accumulator_strategy import GediAccumulatorStrategy
+from src.accumulation.greedy_grid_accumulator_strategy import GreedyGridAccumulatorStrategy
 from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 
 from src.datasets.dataset import Dataset
@@ -189,6 +190,7 @@ def __process_dataset(dataset: Dataset,
 accumulator_strategies = {
     'default': DefaultAccumulatorStrategy(),
     'gedi': GediAccumulatorStrategy(),
+    'greedy_grid': GreedyGridAccumulatorStrategy(),
 }
 
 
@@ -200,7 +202,8 @@ def parse_arguments():
     parser.add_argument("--split", type=str, choices=['train', 'test', 'val', 'raw_small', 'raw_medium', 'raw_large'],
                         default="train", help="Once dataset split type.")
     parser.add_argument('--dataroot', type=str, default='./temp/nuscenes', help='Data root location.')
-    parser.add_argument('--strategy', type=str, default='default', help='Accumulation strategy.')
+    parser.add_argument('--strategy', type=str, default='default', choices=accumulator_strategies.keys(),
+                        help='Accumulation strategy.')
     parser.add_argument('--enable_logging', action='store_true', help='Save additional logs to file.')
     parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count(),
                         help='Count of parallel workers.')

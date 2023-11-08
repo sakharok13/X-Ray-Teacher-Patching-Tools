@@ -95,3 +95,19 @@ def points_in_box(center_xyz: np.ndarray,
     mask = np.logical_and(np.logical_and(mask_x, mask_y), mask_z)
 
     return mask
+
+
+def apply_transformation_matrix(point_cloud: np.ndarray,
+                                transformation_matrix: np.ndarray) -> np.ndarray:
+    """Applies given transformation matrix to the given point cloud.
+    :param point_cloud: np.ndarray[float]
+        Point cloud to transform of shape [3, n]
+    :param transformation_matrix: np.ndarray[float]
+        Transformation matrix that describes rotation and translation of shape [4, 4].
+    :return: np.ndarray[float]
+        Modified point cloud.
+    """
+    points_count = point_cloud.shape[1]
+    point_cloud[:3, :] = transformation_matrix.dot(
+        np.vstack((point_cloud[:3, :], np.ones(points_count))))[:3, :]
+    return point_cloud

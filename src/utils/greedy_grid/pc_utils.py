@@ -8,8 +8,11 @@ def calculate_voxel_size(cloud):
     xyz_cloud = cloud.T[:, 0:3]
     distances = pdist(xyz_cloud)
     min_dist = np.min(distances)
-
-    return min_dist * 2
+    min_dist_scaled = min_dist * 2
+    if min_dist_scaled < 0.05:
+        return 0.05
+    else:
+        return min_dist_scaled
 
 def unravel_index_pytorch(flat_index, shape):
     flat_index = operator.index(flat_index)

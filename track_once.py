@@ -21,10 +21,15 @@ class Instance:
 
 
 def track_instances(scene_id: str,
-                    sequences_to_frames_lookup: dict,
-                    frame_id_to_annotations_lookup: dict,
+                    path_to_infos: str,
                     save_dir: str,
                     force_overwrite: bool):
+    with open(path_to_infos, 'rb') as file:
+        split_infos_pickle = pickle.load(file)
+
+    sequences_to_frames_lookup = aggregate_frames_in_sequences(split_infos_pickle)
+    frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(split_infos_pickle)
+
     instances_dict = {}
     output_file_path = os.path.normpath(os.path.join(save_dir, f"once_raw_small_{scene_id}.pkl"))
 
@@ -129,24 +134,22 @@ def track_instances(scene_id: str,
         print(f"Source file not found.")
 
 
-def parallel_process(scene,
-                     sequences_to_frames_lookup,
-                     frame_id_to_annotations_lookup,
-                     save_dir,
-                     force_overwrite):
-    num_workers = multiprocessing.cpu_count()
-    print(f"Detected CPUs: {num_workers}")
+def __parallel_process(scenes,
+                       path_to_infos,
+                       save_dir,
+                       force_overwrite,
+                       num_workers):
+    print(f"Using {num_workers} CPUs.")
 
     process_single_sequence = partial(
         track_instances,
-        sequences_to_frames_lookup=sequences_to_frames_lookup,
-        frame_id_to_annotations_lookup=frame_id_to_annotations_lookup,
+        path_to_infos=path_to_infos,
         save_dir=save_dir,
         force_overwrite=force_overwrite
     )
 
     with multiprocessing.Pool(num_workers) as p:
-        list(tqdm(p.imap(process_single_sequence, scene), total=len(scene)))
+        list(tqdm(p.imap_unordered(process_single_sequence, scenes), total=len(scenes)))
 
 
 def parse_arguments():
@@ -157,6 +160,8 @@ def parse_arguments():
     parser.add_argument('--dataroot', type=str, default=None, help='Data root location.')
     parser.add_argument('--save_dir', type=str, default='./out', help='Directory to save tracked files.')
     parser.add_argument('--force_overwrite', action='store_true', help='Overwrite saved files.')
+    parser.add_argument('--num_workers', type=int, default=multiprocessing.cpu_count(),
+                        help='Count of parallel workers.')
     return parser.parse_args()
 
 
@@ -180,15 +185,10 @@ if __name__ == '__main__':
     scenes_path = os.path.join(dataset_root, 'data')
     scenes = set(map(lambda x: x.strip(), open(split_file).readlines()))
 
-    path = os.path.join(dataset_root, 'once_raw_small.pkl')
-    with open(path, 'rb') as file:
-        pickle_data = pickle.load(file)
+    pickled_infos_path = os.path.join(dataset_root, f'once_{split}.pkl')
 
-    sequences_to_frames_lookup = aggregate_frames_in_sequences(pickle_data)
-    frame_id_to_annotations_lookup = build_frame_id_to_annotations_lookup(pickle_data)
-
-    parallel_process(scenes,
-                     sequences_to_frames_lookup,
-                     frame_id_to_annotations_lookup,
-                     save_dir_path,
-                     overwrite)
+    __parallel_process(scenes,
+                       pickled_infos_path,
+                       save_dir_path,
+                       overwrite,
+                       args.num_workers)

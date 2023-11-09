@@ -2,6 +2,7 @@ import numpy as np
 
 from src.accumulation.accumulation_strategy import AccumulationStrategy
 from src.utils.greedy_grid.register import register
+from src.utils.greedy_grid.pc_utils import calculate_voxel_size
 
 
 class GreedyGridAccumulatorStrategy(AccumulationStrategy):
@@ -21,10 +22,11 @@ class GreedyGridAccumulatorStrategy(AccumulationStrategy):
         elif initial_point_cloud.size == 0:
             return next_point_cloud
         else:
+            voxel_size = calculate_voxel_size(initial_point_cloud)
             aligned_next_point_cloud = register(
                 source_point_cloud=next_point_cloud,
                 target_point_cloud=initial_point_cloud,
-                voxel_size=0.15,
+                voxel_size=voxel_size,
                 voxel_fill_positive=5,
                 voxel_fill_negative=-1,
                 padding='same',

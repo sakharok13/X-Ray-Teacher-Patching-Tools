@@ -1,6 +1,15 @@
 import torch
 import operator
+import numpy as np
+from scipy.spatial.distance import pdist
 
+
+def calculate_voxel_size(cloud):
+    xyz_cloud = cloud.T[:, 0:3]
+    distances = pdist(xyz_cloud)
+    min_dist = np.min(distances)
+
+    return min_dist * 2
 
 def unravel_index_pytorch(flat_index, shape):
     flat_index = operator.index(flat_index)

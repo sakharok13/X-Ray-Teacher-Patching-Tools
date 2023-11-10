@@ -267,9 +267,13 @@ def get_pickle_data(dataset_root, scene_id):
     raise ValueError("No pickle file found in both dataset root and scene folder.")
 
 
-def aggregate_frames_in_sequences(pickle_data):
+def aggregate_frames_in_sequences(pickle_data,
+                                  ignore_not_annotated=True):
     sequences_to_frames_lookup = {}
     for data in pickle_data:
+        if ignore_not_annotated and ('annos' not in data):
+            continue
+
         sequence_id = data['sequence_id']
         frame_id = data['frame_id']
         if sequence_id not in sequences_to_frames_lookup:
@@ -278,9 +282,13 @@ def aggregate_frames_in_sequences(pickle_data):
     return sequences_to_frames_lookup
 
 
-def build_frame_id_to_annotations_lookup(pickle_data):
+def build_frame_id_to_annotations_lookup(pickle_data,
+                                         ignore_not_annotated=True):
     id_to_annotations_lookup = {}
     for data in pickle_data:
+        if ignore_not_annotated and ('annos' not in data):
+            continue
+
         frame_id = data['frame_id']
         if frame_id not in id_to_annotations_lookup:
             id_to_annotations_lookup[frame_id] = data
@@ -294,6 +302,7 @@ def get_frame_ids_for_scene(once: ONCE,
 
     frame_ids = [os.path.basename(file).split('.')[0] for file in raw_frame_files]
     return sorted(frame_ids)
+
 
 def __apply_transformation_matrix(point_cloud: np.ndarray,
                                   transformation_matrix: np.ndarray) -> np.ndarray:

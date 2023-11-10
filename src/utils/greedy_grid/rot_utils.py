@@ -26,9 +26,9 @@ def homo_matmul(pts, T):
 
 
 def generate_z_rotations_grid(
-        degree_interval_start: int = -30,
-        degree_interval_end: int = 30,
-        degree_step: int = 2,
+        degree_interval_start: int = -20,
+        degree_interval_end: int = 20,
+        degree_step: int = 1,
 ):
     """
     Generates a rotation greed in between degree_interval_start and

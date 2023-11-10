@@ -26,8 +26,8 @@ def homo_matmul(pts, T):
 
 
 def generate_z_rotations_grid(
-        degree_interval_start: int = -20,
-        degree_interval_end: int = 20,
+        degree_interval_start: int = -35,
+        degree_interval_end: int = 35,
         degree_step: int = 1,
 ):
     """

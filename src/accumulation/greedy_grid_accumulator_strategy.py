@@ -24,7 +24,7 @@ class GreedyGridAccumulatorStrategy(AccumulationStrategy):
             aligned_next_point_cloud = register(
                 source_point_cloud=next_point_cloud,
                 target_point_cloud=initial_point_cloud,
-                voxel_size=0.15,
+                voxel_size=0.5,
                 voxel_fill_positive=5,
                 voxel_fill_negative=-1,
                 padding='same',

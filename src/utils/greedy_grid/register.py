@@ -69,7 +69,6 @@ def register(source_point_cloud: np.ndarray,
     shapes = []
     minimas = torch.empty(R_batch.shape[0], 3)
 
-    fft_iter_time = time.time()
     for ind_dataloader, (voxelized_batch_padded, mins) in enumerate(my_dataloader):
         minimas[ind_dataloader * batch_size:
                 (ind_dataloader + 1) * batch_size, :] = mins
@@ -111,12 +110,6 @@ def register(source_point_cloud: np.ndarray,
                       (ind3 * voxel_size) +
                       (0.5 * voxel_size)
                       ])
-
-    t = t.clamp(-10, 10)
-    # Let's limit rotation along z even more,
-    # as it is highly unlikely we will get
-    # elements elevated on top of each other.
-    t[2] = torch.clamp(t[2], -1, 1)
 
     center_pcj_translation = my_data.center
     make_pcj_posit_translation = minimas[rotation_index]

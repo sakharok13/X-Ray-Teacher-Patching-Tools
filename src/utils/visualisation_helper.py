@@ -2,11 +2,13 @@ import numpy as np
 import open3d as o3d
 
 from pyquaternion import Quaternion
+from typing import Optional
 
 
 def visualise_points_cloud(points: np.ndarray,
                            bboxes: list = [],
-                           camera_position: str = None,
+                           camera_position: Optional = None,
+                           point_size: float = 2,
                            window_title: str = 'Scene visualisation'):
     """Draws a point cloud in open3d.
 
@@ -14,6 +16,10 @@ def visualise_points_cloud(points: np.ndarray,
         Point cloud as a mxk float numpy array.
     :param bboxes: list[list[float]]
         List of bounding boxes in [cx, cy, cz, dx, dy, dz, heading] format.
+    :param camera_position: Optional[str]
+        Position of a camera obtained by pressing P in o3d window.
+    :param point_size: float
+        Size of a single point in the window.
     :param window_title: str
         Title of the window.
     """
@@ -46,7 +52,7 @@ def visualise_points_cloud(points: np.ndarray,
     vis.register_key_callback(ord("S"), capture_image)
 
     render_option = vis.get_render_option()
-    render_option.point_size = 2
+    render_option.point_size = point_size
 
     vis.add_geometry(o3d_pc)
     for box in o3d_boxes:

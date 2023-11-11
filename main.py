@@ -58,7 +58,8 @@ def main():
 
     frame_patcher = dataset.load_frame_patcher(scene_id=scene_id, frame_id=frame_id)
     # Original unmodified frame.
-    visualise_points_cloud(frame_patcher.frame.T)
+    visualise_points_cloud(frame_patcher.frame.T,
+                           window_title=f"{scene_id}_{frame_id}")
 
     for i, instance_id in enumerate(instance_ids):
         accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
@@ -68,7 +69,8 @@ def main():
         print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
-        visualise_points_cloud(accumulated_point_cloud.T)
+        # visualise_points_cloud(accumulated_point_cloud.T,
+        #                        window_title=f"{scene_id}_{frame_id}_{instance_id}_accumulated")
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)

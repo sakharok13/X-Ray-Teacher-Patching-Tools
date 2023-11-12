@@ -1,4 +1,5 @@
 from src.accumulation.default_accumulator_strategy import DefaultAccumulatorStrategy
+from src.accumulation.no_op_accumulator_strategy import NoOpAccumulatorStrategy
 from src.accumulation.greedy_grid_accumulator_strategy import GreedyGridAccumulatorStrategy
 from src.accumulation.point_cloud_accumulator import PointCloudAccumulator
 
@@ -44,7 +45,7 @@ def main():
     point_cloud_accumulator = PointCloudAccumulator(step=1,
                                                     grouped_instances=grouped_instances,
                                                     dataset=dataset)
-    default_accumulation_strategy = GreedyGridAccumulatorStrategy()
+    default_accumulation_strategy = NoOpAccumulatorStrategy()
 
     frame_id = '1616013899200'
     instance_ids = set()
@@ -58,7 +59,8 @@ def main():
 
     frame_patcher = dataset.load_frame_patcher(scene_id=scene_id, frame_id=frame_id)
     # Original unmodified frame.
-    visualise_points_cloud(frame_patcher.frame.T)
+    visualise_points_cloud(frame_patcher.frame.T,
+                           window_title=f"{scene_id}_{frame_id}")
 
     for i, instance_id in enumerate(instance_ids):
         accumulated_point_cloud = point_cloud_accumulator.merge(scene_id=scene_id,
@@ -68,7 +70,8 @@ def main():
         print('Frames for instance', instance_id, 'are', grouped_instances[instance_id])
 
         # Visualise accumulated point cloud.
-        visualise_points_cloud(accumulated_point_cloud.T)
+        visualise_points_cloud(accumulated_point_cloud.T,
+                               window_title=f"{scene_id}_{frame_id}_{instance_id}_accumulated")
 
         frame_patcher.patch_instance(instance_id=instance_id,
                                      point_cloud=accumulated_point_cloud)

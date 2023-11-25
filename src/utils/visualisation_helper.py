@@ -35,7 +35,7 @@ def visualise_points_cloud(points: np.ndarray,
     for bbox in bboxes:
         x, y, z, dx, dy, dz, heading = bbox
         center = (x, y, z)
-        r = Quaternion(heading, 0, 0, 1).rotation_matrix
+        r = Quaternion(angle=heading, axis=[0, 0, 1]).rotation_matrix
         size = np.array([dx, dy, dz])
         oriented_box = o3d.geometry.OrientedBoundingBox(center, r, size)
         o3d_boxes.append(oriented_box)

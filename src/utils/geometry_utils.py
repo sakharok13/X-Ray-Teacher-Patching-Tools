@@ -78,7 +78,7 @@ def points_in_box(center_xyz: np.ndarray,
     :return: <np.bool: n, >.
     """
 
-    orientation = Quaternion(heading_angle, 0, 0, 1)
+    orientation = Quaternion(angle=heading_angle, axis=[0, 0, 1])
     corners = __corners(center_xyz, dimensions_lwh, orientation)
 
     p1 = corners[:, 0]

@@ -213,7 +213,7 @@ def get_instance_point_cloud(
         instance_point_cloud = frame_point_cloud[:, np.where(mask)[0]]
 
         identity_transformation = transform_matrix(np.array([cx, cy, cz]),
-                                                   Quaternion(theta, 0, 0, 1),
+                                                   Quaternion(angle=theta, axis=[0, 0, 1]),
                                                    inverse=True)
 
         instance_point_cloud = __apply_transformation_matrix(point_cloud=instance_point_cloud,
@@ -236,7 +236,7 @@ def reapply_frame_transformation(point_cloud: np.ndarray,
     cx, cy, cz, l, w, h, theta = box
 
     reverse_transformation = transform_matrix(np.array([cx, cy, cz]),
-                                              Quaternion(theta, 0, 0, 1),
+                                              Quaternion(angle=theta, axis=[0, 0, 1]),
                                               inverse=False)
 
     instance_point_cloud = __apply_transformation_matrix(point_cloud=point_cloud,

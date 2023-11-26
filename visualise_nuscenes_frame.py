@@ -1,15 +1,24 @@
-import sys
+import argparse
 
 from nuscenes.utils.data_classes import LidarPointCloud
 
 from src.utils.visualisation_helper import visualise_points_cloud
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='patch scene arguments')
+    parser.add_argument('file', type=str, help='Data root location.')
+    parser.add_argument('--camera_position', type=str, default=None, help='Directory to save tracked files.')
+    return parser.parse_args()
+
+
 def main():
-    lidar_data_path = sys.argv[1]
+    args = parse_arguments()
+    lidar_data_path = args.file
 
     lidar_point_clouds = LidarPointCloud.from_file(lidar_data_path)
     visualise_points_cloud(lidar_point_clouds.points.T,
+                           camera_position=args.camera_position,
                            window_title=lidar_data_path)
 
 

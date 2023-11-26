@@ -1,5 +1,4 @@
 import argparse
-import sys
 import numpy as np
 
 from src.utils.visualisation_helper import visualise_points_cloud

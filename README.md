@@ -1,6 +1,6 @@
 # X-Ray Distillation: Object-Completion tools
 
-[![arXiv](http://img.shields.io/badge/cs.CV-arXiv%2404.00679-B31B1B.svg)](https://arxiv.org/abs/2404.00679)
+[![arXiv](http://img.shields.io/badge/cs.CV-arXiv:2404.00679-B31B1B.svg)](https://arxiv.org/abs/2404.00679)
 
 ![Poster](./images/poster.png)
 

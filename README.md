@@ -37,7 +37,7 @@ All videos are hosted on YouTube platform.
 ```
 
 ## Acknowledgements
-- [OpenPCDet repository is used for training semi-supervised and supervised models](https://github.com/open-mmlab/OpenPCDet)
-- [Official DSVT repository is used for training DSVT models](https://github.com/Haiyang-W/DSVT).
+- [OpenPCDet](https://github.com/open-mmlab/OpenPCDet) is used for training semi-supervised and supervised models
+- Official [DSVT](https://github.com/Haiyang-W/DSVT) repository is used for training DSVT models.
 - [Greedy Grid Search](https://github.com/DavidBoja/greedy-grid-search): the code is used for one of [the accumulation strategies](./src/accumulation/greedy_grid_accumulator_strategy.py). The forked code of Greedy Grid is located under [`src.utils.greedy_grid`](./src/utils/greedy_grid).
 
